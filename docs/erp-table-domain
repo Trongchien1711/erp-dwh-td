@@ -1,0 +1,99 @@
+🟢 1️⃣ SALES DOMAIN
+
+Các bảng liên quan doanh thu:
+
+tbl_orders
+
+tbl_order_items
+
+tbl_delivery_items
+
+tbl_deliveries
+
+tbl_invoice_items
+
+tbl_invoices
+
+tbl_quotes
+
+tbl_order_items_stages
+
+tbl_order_items_columns (attribute mở rộng)
+
+
+🟡 2️⃣ PURCHASE DOMAIN
+
+tbl_purchase_products
+
+tbl_purchase_product_items
+
+tblpurchase_order
+
+tblpurchase_order_items
+
+tblpurchase_invoice
+
+tblpurchase_invoice_items
+
+tbl_suppliers
+
+
+
+🔵 3️⃣ INVENTORY DOMAIN
+
+tblwarehouse_product
+
+tblwarehouse_items
+
+tblwarehouse_export
+
+tbltransfer_warehouse
+
+tbltransfer_warehouse_detail
+
+tblinventory
+
+tblinventory_items
+
+👉 Snapshot + movement fact
+
+🟣 4️⃣ PRODUCTION DOMAIN
+
+tbl_productions_orders
+
+tbl_productions_orders_items
+
+tbl_productions_plan
+
+tbl_production_report
+
+tbl_manufactures
+
+tbl_product_stages_versions
+
+
+
+🟤 5️⃣ HR / TIMEKEEPING
+
+tbl_timekeeping_detail
+
+tbl_timekeeping_detail_hour
+
+tbl_payroll
+
+tbl_payroll_item
+
+tbl_staff
+
+
+🔴 6️⃣ LOG / SYSTEM (LOẠI BỎ PHASE 1)
+
+tblactivity_log
+
+tblnotifications
+
+tblnotification_app
+
+tblget_api
+
+Không đưa vào DWH.
