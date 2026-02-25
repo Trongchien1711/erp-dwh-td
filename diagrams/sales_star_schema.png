@@ -1,1 +1,9 @@
-
+erp_dwh
+├── core     (68 tables)  ✅
+│   ├── dim_*         × 10
+│   ├── fact_* main   × 10
+│   ├── fact_* part   × 40
+│   └── fact_* def    × 8
+├── staging  (23 tables)  ✅
+│   └── raw copy từ ERP
+└── mart     (0 tables)   ⏳ sau
