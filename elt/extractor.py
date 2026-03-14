@@ -19,22 +19,22 @@ TABLE_CONFIG = [
     {
         "source_table":   "tbl_orders",
         "staging_table":  "tbl_orders",
-        "watermark_col":  "date_updated",
+        "watermark_col":  "date",
     },
     {
         "source_table":   "tbl_order_items",
         "staging_table":  "tbl_order_items",
-        "watermark_col":  "date_active",
+        "watermark_col":  None,          # full load (date_active 100% NULL)
     },
     {
         "source_table":   "tbl_order_items_stages",
         "staging_table":  "tbl_order_items_stages",
-        "watermark_col":  "date_active",
+        "watermark_col":  None,          # full load (date_active 100% NULL)
     },
     {
         "source_table":   "tbl_deliveries",
         "staging_table":  "tbl_deliveries",
-        "watermark_col":  "date_updated",
+        "watermark_col":  "date",
     },
     {
         "source_table":   "tbl_delivery_items",
@@ -104,7 +104,7 @@ TABLE_CONFIG = [
     {
         "source_table":   "tbl_productions_orders",
         "staging_table":  "tbl_productions_orders",
-        "watermark_col":  "date_updated",
+        "watermark_col":  "date",
     },
     {
         "source_table":   "tbl_productions_orders_items",
@@ -115,16 +115,17 @@ TABLE_CONFIG = [
         "source_table":   "tbl_productions_orders_items_stages",
         "staging_table":  "tbl_productions_orders_items_stages",
         "watermark_col":  "date_active",
+        "allow_null_watermark": True,    # ~1.7% NULL rows → include them
     },
     {
         "source_table":   "tbl_manufactures",
         "staging_table":  "tbl_manufactures",
-        "watermark_col":  "date_updated",
+        "watermark_col":  "date",
     },
     {
         "source_table":   "tblstaff",
         "staging_table":  "tblstaff",
-        "watermark_col":  "date_update",
+        "watermark_col":  "datecreated",
     },
     {
         "source_table":   "tbldepartments",
@@ -141,19 +142,30 @@ def extract_table(
     source_table: str,
     watermark_col: str | None,
     last_watermark: str,
+    allow_null_watermark: bool = False,
 ) -> pd.DataFrame:
     """
     Extract 1 bảng từ MySQL.
     - Nếu watermark_col có → incremental theo watermark_col >= last_watermark
+    - Nếu allow_null_watermark=True → thêm OR watermark_col IS NULL để lấy cả rows NULL
     - Nếu watermark_col = None → full load (truncate + reload)
     """
     if watermark_col:
-        query = f"""
-            SELECT *
-            FROM `{source_table}`
-            WHERE `{watermark_col}` >= %(wm)s
-            ORDER BY `{watermark_col}` ASC
-        """
+        if allow_null_watermark:
+            query = f"""
+                SELECT *
+                FROM `{source_table}`
+                WHERE (`{watermark_col}` >= %(wm)s
+                OR `{watermark_col}` IS NULL)
+                ORDER BY ISNULL(`{watermark_col}`) ASC, `{watermark_col}` ASC
+            """
+        else:
+            query = f"""
+                SELECT *
+                FROM `{source_table}`
+                WHERE `{watermark_col}` >= %(wm)s
+                ORDER BY `{watermark_col}` ASC
+            """
         params = {"wm": last_watermark}
         logger.info(f"[Extract] {source_table} | incremental from {last_watermark}")
     else:

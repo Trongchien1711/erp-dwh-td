@@ -47,7 +47,8 @@ def run_extract_load(mysql_engine, pg_engine, table_filter: str = None):
 
         try:
             last_wm = get_watermark(pg_engine, source)
-            df      = extract_table(mysql_engine, source, wm_col, last_wm)
+            df      = extract_table(mysql_engine, source, wm_col, last_wm,
+                                    allow_null_watermark=cfg.get("allow_null_watermark", False))
 
             if df.empty:
                 logger.info(f"[Pipeline] {source} → no new data, skip load.")
