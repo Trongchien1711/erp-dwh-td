@@ -1,5 +1,6 @@
 # ── Môi trường Python ──────────────────────────────────────────────────────
 .venv/
+.venv_dbt/
 __pycache__/
 *.pyc
 *.pyd
@@ -19,6 +20,7 @@ logs/
 dbt_project/target/
 dbt_project/dbt_packages/
 dbt_project/logs/
+dbt_project/.user.yml
 dbt_project/profiles.yml   # real credentials — use profiles.yml.example
 
 # ── IDE ────────────────────────────────────────────────────────────────────

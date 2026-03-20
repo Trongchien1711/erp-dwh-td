@@ -26,7 +26,7 @@ renamed as (
         company,
         company_short,
         representative,
-        fullname,
+        coalesce(representative, company) as fullname,   -- fullname NULL in ERP; derive from representative → company
         phonenumber,
         email,
 

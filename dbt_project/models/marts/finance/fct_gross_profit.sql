@@ -9,11 +9,16 @@
 --
 -- NOTE    : Metric definitions
 --   revenue      = grand_total (includes VAT + delivery charge)
---   cogs         = total_cost  (cost of goods sold)
---   gross_profit = revenue − cogs
+--   cogs         = total_cost  (ERP-recorded; populated for only ~244 of 72,363 orders)
+--   gross_profit = revenue − cogs  (from ERP total_profit; near-zero due to missing COGS)
 --   gp_margin_pct = gross_profit / revenue * 100
 --   delivery_rev = cost_delivery (earmarked delivery charge)
---   collected    = total_payment (invoiced cash received)
+--   collected    = total_payment (always 0 — payment module not configured in ERP)
+--
+-- ERP DATA GAPS:
+--   • COGS (total_cost): populated for only ~244 orders. ERP does not record item
+--     cost at order time. No per-unit cost is available in any source table.
+--   • Payments (total_payment / status_payment): not tracked in ERP source system.
 -- ============================================================
 
 with orders as (
@@ -53,6 +58,7 @@ final as (
         sum(total_tax)                                  as total_vat,
 
         -- ── costs ──────────────────────────────────────────────
+        -- cogs: ERP-recorded (only ~244 orders have cost > 0 — see YML for ERP gap note)
         sum(total_cost)                                 as cogs,
 
         -- ── profit ─────────────────────────────────────────────

@@ -21,9 +21,9 @@ models:
       - name: gross_margin_pct
         description: "gross_profit / revenue × 100"
       - name: collected
-        description: Cash actually received (total_payment)
+        description: "Cash actually received (total_payment). Always 0 — payment module not configured in ERP."
       - name: outstanding_ar
-        description: "revenue − collected (trade receivable)"
+        description: "revenue − collected (trade receivable). Always equals revenue — payment not tracked in ERP."
 
   - name: fct_order_items_detail
     description: >
@@ -41,3 +41,52 @@ models:
         description: COGS for this line
       - name: profit
         description: Line-level gross profit
+
+  - name: fct_order_performance
+    description: >
+      Order-level fulfilment and payment performance.
+      Grain: one row per order. Tracks delivery rate, outstanding
+      quantity, payment status, and order completion.
+    columns:
+      - name: order_id
+        description: Natural key from tbl_orders
+        tests: [not_null, unique]
+      - name: revenue
+        description: grand_total — full order value
+      - name: outstanding_ar
+        description: revenue − collected (unpaid balance)
+      - name: fulfilment_rate_pct
+        description: "qty_delivered / qty_ordered × 100"
+      - name: is_fully_delivered
+        description: 1 = all items delivered
+      - name: is_paid
+        description: "1 = status_payment = 1 (fully paid). Always 0 — payment not tracked in ERP."
+      - name: is_completed
+        description: 1 = is_end = 1 (order closed)
+      - name: is_cancel
+        description: 1 = cancelled order
+
+  - name: dim_customer_segmentation
+    description: >
+      RFM-based customer segmentation. Grain: one row per customer.
+      Combines customer master data with lifetime purchase behaviour
+      to assign recency, frequency, and monetary scores (1–5 each)
+      and a segment label (Champions, Loyal, At Risk, etc.).
+    columns:
+      - name: customer_key
+        description: Surrogate PK
+        tests: [not_null, unique]
+      - name: rfm_segment
+        description: "Segment label: Champions / Loyal / Promising / Potential Loyalist / At Risk / Lost / New / Others"
+      - name: recency_score
+        description: 1–5, higher = bought more recently
+      - name: frequency_score
+        description: 1–5, higher = more orders
+      - name: monetary_score
+        description: 1–5, higher = more lifetime revenue
+      - name: rfm_total_score
+        description: Sum of recency + frequency + monetary (3–15)
+      - name: lifetime_revenue
+        description: Total revenue from non-cancelled orders
+      - name: days_since_last_order
+        description: Calendar days between last order and today

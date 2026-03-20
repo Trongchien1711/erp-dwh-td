@@ -1,11 +1,72 @@
 version: 2
 
 models:
+  - name: fct_purchase_cost
+    description: >
+      Purchase cost summary by supplier and product.
+      Grain: one row per (po_date × supplier × product).
+      Aggregates purchase order line items for procurement
+      spend analysis and supplier performance tracking.
+    columns:
+      - name: po_date_key
+        description: Date key YYYYMMDD
+        tests: [not_null]
+      - name: po_count
+        description: Number of distinct purchase orders in this group
+      - name: qty_ordered
+        description: Total units ordered to supplier
+      - name: qty_received
+        description: Total units confirmed received (quantity_suppliers)
+      - name: expected_cost
+        description: Budgeted cost (total_expected)
+      - name: actual_cost
+        description: Invoiced cost (total_suppliers)
+      - name: price_variance
+        description: actual_cost − expected_cost
+      - name: avg_unit_cost
+        description: actual_cost / qty_received
+      - name: qty_gap
+        description: qty_ordered − qty_received (delivery shortfall)
+
+  - name: dim_customer_credit
+    description: >
+      Customer credit and AR status. Grain: one row per customer.
+      Combines debt_limit from ERP master with live outstanding_ar
+      derived from fct_revenue to show credit utilisation and
+      flag accounts that are near or over their credit limit.
+    columns:
+      - name: customer_key
+        description: Surrogate PK
+        tests: [not_null, unique]
+      - name: debt_limit
+        description: >
+          Maximum credit extended (from tblclients.debt_limit).
+          ERP NOTE — debt_limit = 0 for all 260 customers; credit limits not
+          configured in the ERP. All customers will show 'No Limit Set'.
+      - name: debt_limit_day
+        description: Payment terms in days
+      - name: outstanding_ar
+        description: >
+          Total unpaid invoices (revenue − collected).
+          ERP NOTE — equals revenue for all customers because payment is not tracked in ERP.
+      - name: credit_utilisation_pct
+        description: "outstanding_ar / debt_limit × 100 (NULL — debt_limit = 0 in ERP)"
+      - name: credit_headroom
+        description: debt_limit − outstanding_ar
+      - name: is_over_limit
+        description: 1 = outstanding_ar > debt_limit
+      - name: credit_status
+        description: "Over Limit / Near Limit / Within Limit / Clear / No Limit Set"
+
   - name: fct_gross_profit
     description: >
       P&L-style gross profit summary.
       Grain: one row per (order_date × customer × branch).
       Excludes cancelled orders. Primary model for finance dashboards.
+      ERP NOTE — cogs/gross_profit populated for only ~244 orders (ERP does not record
+      item cost for most orders). Use estimated_cogs/estimated_gross_profit for analysis.
+      Payment (collected, outstanding_ar) = 0/revenue because status_payment is not
+      configured in the ERP source system.
     columns:
       - name: order_date_key
         description: Date key YYYYMMDD
@@ -13,14 +74,18 @@ models:
       - name: revenue
         description: Sum of grand_total (includes VAT + delivery)
       - name: cogs
-        description: Cost of goods sold
+        description: >
+          ERP-recorded cost of goods sold (total_cost).
+          Only ~244 of 72,363 orders have cost > 0 in ERP.
+          No per-unit cost is available from any source table (price_import = 0,
+          purchase receipt prices = 0, PO UOM differs from order item UOM).
       - name: gross_profit
-        description: revenue − cogs
+        description: revenue − cogs (ERP-recorded; near-zero for most orders due to missing COGS)
       - name: gp_margin_pct
-        description: "gross_profit / revenue × 100"
+        description: "gross_profit / revenue × 100 (near-zero — ERP does not record COGS for most orders)"
       - name: total_vat
         description: VAT collected
       - name: collected
-        description: Cash received
+        description: "Cash received (total_payment). Always 0 — payment module not configured in ERP."
       - name: outstanding_ar
-        description: "revenue − collected"
+        description: "revenue − collected. Always equals revenue — payment not tracked in ERP."

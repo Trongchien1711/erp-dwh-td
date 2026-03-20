@@ -233,6 +233,15 @@ WHERE fi.order_item_id = oi.id
   AND fi.customer_key IS NULL;
 """
 
+SQL_FIX_FACT_WH_STOCK_PRODUCT_KEY = """
+UPDATE core.fact_warehouse_stock f
+SET product_key = dp.product_key
+FROM staging.tblwarehouse_product wp
+JOIN core.dim_product dp ON dp.product_id = wp.product_id
+WHERE f.stock_id = wp.id
+  AND f.product_key IS NULL;
+"""
+
 SQL_DIM_WAREHOUSE = """
 WITH updated AS (
     UPDATE core.dim_warehouse d
@@ -646,6 +655,7 @@ TRANSFORM_STEPS = [
     # Fix NULL keys (fact tables duoc tao truoc khi dim co data)
     ("fact_orders [FIX customer+employee keys]",    SQL_FIX_FACT_ORDERS_KEYS),
     ("fact_order_items [FIX customer_key]",         SQL_FIX_FACT_ORDER_ITEMS_CUSTOMER_KEY),
+    ("fact_warehouse_stock [FIX product_key]",      SQL_FIX_FACT_WH_STOCK_PRODUCT_KEY),
 ]
 
 
@@ -660,6 +670,9 @@ _CHECK_STEPS = {
     ),
     "fact_order_items [FIX customer_key]": (
         "SELECT 1 FROM core.fact_order_items WHERE customer_key IS NULL LIMIT 1"
+    ),
+    "fact_warehouse_stock [FIX product_key]": (
+        "SELECT 1 FROM core.fact_warehouse_stock WHERE product_key IS NULL LIMIT 1"
     ),
 }
 

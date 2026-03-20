@@ -9,9 +9,16 @@
 # ============================================
 
 import argparse
+import os
 import sys
 from datetime import datetime
+from pathlib import Path
 from loguru import logger
+
+# Ensure CWD = script directory so relative paths (logs/, .env) always resolve
+os.chdir(Path(__file__).parent)
+# Add script directory to sys.path so sibling modules are importable
+sys.path.insert(0, str(Path(__file__).parent))
 
 from connections    import get_mysql_engine, get_pg_engine
 from watermark      import init_watermark_table, get_watermark, set_watermark

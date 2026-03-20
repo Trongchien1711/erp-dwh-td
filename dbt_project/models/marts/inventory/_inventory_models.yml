@@ -1,6 +1,51 @@
 version: 2
 
 models:
+  - name: fct_inbound_outbound
+    description: >
+      Daily stock movement summary. Grain: one row per
+      (movement_date × product × warehouse × movement_type).
+      Combines inbound receipts (fact_purchase_product_items) and
+      outbound deliveries (fact_delivery_items) into a single flow table.
+    columns:
+      - name: movement_type
+        description: INBOUND or OUTBOUND
+      - name: quantity_in
+        description: Units received into warehouse (INBOUND rows)
+      - name: quantity_out
+        description: Units shipped out of warehouse (OUTBOUND rows)
+      - name: net_movement
+        description: quantity_in − quantity_out
+      - name: value_in
+        description: >
+          Inbound value = quantity × weighted-avg supplier price from PO history.
+          (price_import in dim_product is not populated in ERP; PO price used instead.)
+      - name: value_out
+        description: Outbound revenue value (total_amount from delivery)
+
+  - name: fct_production_efficiency
+    description: >
+      Production performance per order-item and stage date.
+      Grain: one row per (production_order_item × stage_date).
+      Tracks planned vs actual output and worker productivity.
+    columns:
+      - name: qty_planned
+        description: Production order planned quantity
+      - name: qty_produced
+        description: Actual output (sum of number_face from stages)
+      - name: efficiency_pct
+        description: "qty_produced / qty_planned × 100"
+      - name: total_workers
+        description: Total worker headcount on this order-date
+      - name: total_hours
+        description: >
+          Total worker-hours logged (number_hours from fact_production_stages).
+          ERP NOTE — always 0; number_hours field not populated in ERP source.
+      - name: output_per_hour
+        description: >
+          qty_produced / total_hours (labour productivity).
+          Always NULL because total_hours = 0 in ERP.
+
   - name: fct_stock_snapshot
     description: >
       Current stock levels by product, warehouse, and lot.
