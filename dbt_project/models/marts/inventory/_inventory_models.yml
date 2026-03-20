@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: fct_stock_snapshot
+    description: >
+      Current stock levels by product, warehouse, and lot.
+      Grain: one row per stock lot (product × warehouse × lot_code × import_date).
+      Source: core.fact_warehouse_stock (no partition — full history).
+    columns:
+      - name: stock_key
+        description: Surrogate PK
+        tests: [not_null, unique]
+      - name: quantity_left
+        description: Remaining units in this lot
+      - name: quantity_exported
+        description: Units issued from this lot
+      - name: stock_value
+        description: "quantity_left × price (valued at import cost)"
+      - name: lot_code
+        description: Lot / batch traceability code
+      - name: date_sd
+        description: Expiry date of this lot

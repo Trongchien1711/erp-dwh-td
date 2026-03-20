@@ -1,0 +1,136 @@
+version: 2
+
+sources:
+  - name: core
+    description: >
+      Dimensional model layer — built by the Python ELT pipeline (elt/).
+      Contains 9 dimension tables and 9 fact tables in star schema.
+    database: "{{ env_var('PG_DATABASE', 'erp_dwh') }}"
+    schema: core
+    tables:
+      # ── Date spine ────────────────────────────────────────────
+      - name: dim_date
+        description: Date dimension covering 2020-01-01 to 2030-12-31 (INT date_key = YYYYMMDD)
+        columns:
+          - name: date_key
+            description: Integer date key YYYYMMDD
+            tests: [not_null, unique]
+
+      # ── Dimensions ────────────────────────────────────────────
+      - name: dim_customer
+        description: Customer master data (SCD Type 1)
+        columns:
+          - name: customer_key
+            description: Surrogate primary key
+            tests: [not_null, unique]
+          - name: customer_id
+            description: Natural key from tblclients.userid
+            tests: [not_null]
+
+      - name: dim_product
+        description: Product master data (SCD Type 1)
+        columns:
+          - name: product_key
+            tests: [not_null, unique]
+          - name: product_id
+            tests: [not_null]
+
+      - name: dim_staff
+        description: Employee / staff master data
+        columns:
+          - name: staff_key
+            tests: [not_null, unique]
+
+      - name: dim_department
+        description: Department master data
+        columns:
+          - name: department_key
+            tests: [not_null, unique]
+
+      - name: dim_warehouse
+        description: Warehouse master data
+        columns:
+          - name: warehouse_key
+            tests: [not_null, unique]
+
+      - name: dim_warehouse_location
+        description: Storage locations within warehouses
+        columns:
+          - name: location_key
+            tests: [not_null, unique]
+
+      - name: dim_supplier
+        description: Supplier master data
+        columns:
+          - name: supplier_key
+            tests: [not_null, unique]
+
+      - name: dim_manufacture
+        description: Manufacturing unit master data
+        columns:
+          - name: manufacture_key
+            tests: [not_null, unique]
+
+      - name: dim_price_group
+        description: Customer price group / tier
+        columns:
+          - name: price_group_key
+            tests: [not_null, unique]
+
+      # ── Facts ─────────────────────────────────────────────────
+      - name: fact_orders
+        description: Sales order headers (1 row = 1 order)
+        columns:
+          - name: order_id
+            tests: [not_null]
+          - name: order_date_key
+            description: Date key YYYYMMDD INT
+            tests: [not_null]
+
+      - name: fact_order_items
+        description: Sales order line items (1 row = 1 product in 1 order)
+        columns:
+          - name: order_item_id
+            tests: [not_null]
+
+      - name: fact_delivery_items
+        description: Delivery line items
+        columns:
+          - name: delivery_item_id
+            tests: [not_null]
+
+      - name: fact_warehouse_stock
+        description: Warehouse stock lots (1 row = 1 stock lot)
+        columns:
+          - name: stock_id
+            tests: [not_null]
+
+      - name: fact_purchase_order_items
+        description: Purchase order line items
+        columns:
+          - name: po_item_id
+            tests: [not_null]
+
+      - name: fact_production_order_items
+        description: Production order line items
+        columns:
+          - name: prod_item_id
+            tests: [not_null]
+
+      - name: fact_production_stages
+        description: Production stage records per worker
+        columns:
+          - name: prod_stage_id
+            tests: [not_null]
+
+      - name: fact_purchase_product_items
+        description: Inbound stock receipt items
+        columns:
+          - name: pp_item_id
+            tests: [not_null]
+
+      - name: fact_transfer_warehouse
+        description: Warehouse-to-warehouse transfer items
+        columns:
+          - name: transfer_detail_id
+            tests: [not_null]

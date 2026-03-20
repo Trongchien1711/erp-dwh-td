@@ -1,0 +1,26 @@
+version: 2
+
+models:
+  - name: fct_gross_profit
+    description: >
+      P&L-style gross profit summary.
+      Grain: one row per (order_date × customer × branch).
+      Excludes cancelled orders. Primary model for finance dashboards.
+    columns:
+      - name: order_date_key
+        description: Date key YYYYMMDD
+        tests: [not_null]
+      - name: revenue
+        description: Sum of grand_total (includes VAT + delivery)
+      - name: cogs
+        description: Cost of goods sold
+      - name: gross_profit
+        description: revenue − cogs
+      - name: gp_margin_pct
+        description: "gross_profit / revenue × 100"
+      - name: total_vat
+        description: VAT collected
+      - name: collected
+        description: Cash received
+      - name: outstanding_ar
+        description: "revenue − collected"

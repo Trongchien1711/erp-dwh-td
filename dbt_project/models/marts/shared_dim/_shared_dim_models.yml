@@ -1,0 +1,35 @@
+version: 2
+
+models:
+  - name: dim_customer_mart
+    description: >
+      Analysis-ready customer dimension shared across all domains.
+      Grain: one row per customer. Strips ELT metadata and renames
+      technical fields for BI readability.
+    columns:
+      - name: customer_key
+        description: Surrogate PK
+        tests: [not_null, unique]
+      - name: customer_code
+        description: ERP customer code
+      - name: customer_name
+        description: Full display name (renamed from fullname)
+      - name: price_group_name
+        description: Customer tier / price group
+
+  - name: dim_product_mart
+    description: >
+      Analysis-ready product dimension shared across all domains.
+      Grain: one row per product SKU.
+    columns:
+      - name: product_key
+        description: Surrogate PK
+        tests: [not_null, unique]
+      - name: product_code
+        description: ERP SKU / product code
+      - name: product_name
+        description: Product name
+      - name: price_import
+        description: Standard import / purchase cost
+      - name: price_sell
+        description: Standard sell price

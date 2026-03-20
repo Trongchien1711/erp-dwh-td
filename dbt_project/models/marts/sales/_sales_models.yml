@@ -1,0 +1,43 @@
+version: 2
+
+models:
+  - name: fct_revenue
+    description: >
+      Daily revenue summary by customer and branch.
+      Grain: one row per (order_date × customer × branch).
+      Excludes cancelled orders (is_cancel = 1).
+    columns:
+      - name: order_date_key
+        description: Date key YYYYMMDD
+        tests: [not_null]
+      - name: order_count
+        description: Number of unique orders in this group
+      - name: revenue
+        description: Sum of grand_total (includes VAT + delivery)
+      - name: cogs
+        description: Cost of goods sold (total_cost)
+      - name: gross_profit
+        description: revenue − cogs
+      - name: gross_margin_pct
+        description: "gross_profit / revenue × 100"
+      - name: collected
+        description: Cash actually received (total_payment)
+      - name: outstanding_ar
+        description: "revenue − collected (trade receivable)"
+
+  - name: fct_order_items_detail
+    description: >
+      Product-level sales detail. Grain: one row per order line item.
+      Excludes lines from cancelled orders.
+    columns:
+      - name: order_item_id
+        description: Natural key from tbl_order_items
+        tests: [not_null]
+      - name: quantity
+        description: Units ordered in base UOM
+      - name: total_amount
+        description: Net line revenue after discounts and tax
+      - name: cost
+        description: COGS for this line
+      - name: profit
+        description: Line-level gross profit

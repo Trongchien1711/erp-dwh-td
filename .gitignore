@@ -15,6 +15,12 @@ logs/
 *.txt
 !requirements.txt
 
+# ── dbt build artifacts ────────────────────────────────────────────────────
+dbt_project/target/
+dbt_project/dbt_packages/
+dbt_project/logs/
+dbt_project/profiles.yml   # real credentials — use profiles.yml.example
+
 # ── IDE ────────────────────────────────────────────────────────────────────
 .vscode/
 .idea/

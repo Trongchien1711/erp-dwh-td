@@ -1,0 +1,31 @@
+# profiles.yml
+# Đặt file này tại: ~/.dbt/profiles.yml  (KHÔNG đặt trong thư mục project)
+# Hoặc dùng biến môi trường DBT_PROFILES_DIR để trỏ đến thư mục khác
+#
+# File này KHÔNG commit lên Git (chứa password)
+# Dùng profiles.yml.example làm template
+
+erp_dwh:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('PG_HOST', 'localhost') }}"
+      port: "{{ env_var('PG_PORT', '5432') | int }}"
+      user: "{{ env_var('PG_USER') }}"
+      password: "{{ env_var('PG_PASSWORD') }}"
+      dbname: "{{ env_var('PG_DATABASE', 'erp_dwh') }}"
+      schema: mart        # default schema khi chạy dbt
+      threads: 4
+      keepalives_idle: 0
+
+    prod:
+      type: postgres
+      host: "{{ env_var('PG_HOST', 'localhost') }}"
+      port: "{{ env_var('PG_PORT', '5432') | int }}"
+      user: "{{ env_var('PG_USER') }}"
+      password: "{{ env_var('PG_PASSWORD') }}"
+      dbname: "{{ env_var('PG_DATABASE', 'erp_dwh') }}"
+      schema: mart
+      threads: 8
+      keepalives_idle: 0

@@ -1,0 +1,45 @@
+name: 'erp_dwh'
+version: '1.0.0'
+config-version: 2
+
+profile: 'erp_dwh'
+
+# Thư mục chứa models, seeds, tests, ...
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+# Thư mục output (không commit lên git)
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# ============================================================
+# Model configurations
+# ============================================================
+models:
+  erp_dwh:
+    # staging/ — views, chỉ select từ core.* không transform nhiều
+    staging:
+      +materialized: view
+      +schema: staging_dbt   # tạo trong schema staging_dbt, tránh đè staging ELT
+
+    # intermediate/ — ephemeral hoặc tables, business logic
+    intermediate:
+      +materialized: ephemeral
+
+    # marts/ — tables cuối cùng cho BI
+    marts:
+      +materialized: table
+      sales:
+        +schema: mart
+      inventory:
+        +schema: mart
+      finance:
+        +schema: mart
+      shared_dim:
+        +schema: mart

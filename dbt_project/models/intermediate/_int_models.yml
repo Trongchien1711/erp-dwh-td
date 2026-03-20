@@ -1,0 +1,29 @@
+version: 2
+
+models:
+  - name: int_orders_enriched
+    description: >
+      Enriched sales order headers. Joins fact_orders with dim_customer
+      and dim_date so downstream mart models don't need to repeat those
+      joins. Materialised as ephemeral (inlined CTE — no physical table).
+    columns:
+      - name: order_id
+        description: Natural key from ERP
+        tests: [not_null]
+      - name: order_date_key
+        description: Date key YYYYMMDD
+        tests: [not_null]
+      - name: order_date
+        description: Actual DATE resolved via stg_date join
+      - name: grand_total
+        description: Total order value including tax and delivery
+      - name: total_cost
+        description: Cost of goods sold (COGS)
+      - name: total_profit
+        description: grand_total - total_cost (gross profit)
+      - name: total_payment
+        description: Amount actually collected (settled)
+      - name: is_cancel
+        description: "1 = cancelled order — filter with WHERE is_cancel = 0"
+      - name: price_group_name
+        description: Customer price tier — denormalised from dim_customer/dim_price_group

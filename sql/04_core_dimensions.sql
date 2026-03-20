@@ -74,6 +74,10 @@ CREATE TABLE core.dim_customer (
     time_payment        NUMERIC(12,4),
     is_active           BOOLEAN,
     datecreated         TIMESTAMP,
+    -- price_group (added via setup.py if not present)
+    price_group_key     INTEGER,
+    price_group_code    VARCHAR,
+    price_group_name    VARCHAR,
     etl_loaded_at       TIMESTAMP DEFAULT NOW(),
     etl_source          VARCHAR(50) DEFAULT 'tblclients'
 );
