@@ -11,25 +11,42 @@ from loguru import logger
 WATERMARK_DDL = """
 CREATE TABLE IF NOT EXISTS staging.etl_watermark (
     table_name      VARCHAR(100) PRIMARY KEY,
-    last_loaded_at  TIMESTAMP    NOT NULL DEFAULT '2020-01-01 00:00:00',
+    last_loaded_at  TEXT         NOT NULL DEFAULT '2020-01-01 00:00:00',
     updated_at      TIMESTAMP    NOT NULL DEFAULT NOW()
 );
 """
 
+# Migration: convert existing TIMESTAMP column to TEXT so both datetime strings
+# ('2026-03-12 14:13:14') and integer strings ('725264') can be stored.
+_MIGRATE_DDL = """
+ALTER TABLE staging.etl_watermark
+    ALTER COLUMN last_loaded_at TYPE TEXT
+    USING last_loaded_at::TEXT;
+"""
+
 
 def init_watermark_table(pg_engine):
-    """Tạo bảng etl_watermark nếu chưa có."""
+    """Tạo bảng etl_watermark nếu chưa có; migrate cột TIMESTAMP → TEXT nếu cần."""
     with pg_engine.begin() as conn:
         conn.execute(text(WATERMARK_DDL))
+        # Check current column type and migrate if still TIMESTAMP
+        col_type = conn.execute(text(
+            "SELECT data_type FROM information_schema.columns "
+            "WHERE table_schema='staging' AND table_name='etl_watermark' "
+            "AND column_name='last_loaded_at'"
+        )).scalar()
+        if col_type and col_type.lower() not in ('text', 'character varying'):
+            conn.execute(text(_MIGRATE_DDL))
+            logger.info("[Watermark] Migrated last_loaded_at column: TIMESTAMP -> TEXT")
     logger.info("[Watermark] Table ready.")
 
 
 def get_watermark(pg_engine, table_name: str) -> str:
-    """Lấy watermark (last_loaded_at) của bảng."""
+    """Lấy watermark (last_loaded_at) của bảng. Trả về '0' nếu chưa có (ID-based tables)."""
     sql = """
         SELECT COALESCE(
             (SELECT last_loaded_at FROM staging.etl_watermark WHERE table_name = :tbl),
-            '2020-01-01 00:00:00'::TIMESTAMP
+            '2020-01-01 00:00:00'
         ) AS wm
     """
     with pg_engine.connect() as conn:

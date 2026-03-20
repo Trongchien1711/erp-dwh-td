@@ -26,17 +26,18 @@ TABLE_CONFIG = [
         "source_table":  "tbl_order_items",
         "watermark_col": None,          # full load (do không có cột timestamp nào phù hợp)
     },
-    {
-        "source_table":  "tbl_order_items_stages",
-        "watermark_col": None,
-    },
+    # tbl_order_items_stages — bảng staging nội bộ ERP, không được dùng trong
+    # bất kỳ transform hay dbt model nào → đã xoá khỏi pipeline để tiết kiệm
+    # ~363K rows full load mỗi lần chạy.
     {
         "source_table":  "tbl_deliveries",
         "watermark_col": "date",
     },
     {
         "source_table":  "tbl_delivery_items",
-        "watermark_col": None,          # full load
+        # No usable timestamp col; use auto_increment id as append-only watermark.
+        # MySQL: WHERE COALESCE(id, ...) >= :wm casts id string correctly.
+        "watermark_col": "id",
     },
     {
         "source_table":  "tblclients",
@@ -52,7 +53,8 @@ TABLE_CONFIG = [
     },
     {
         "source_table":  "tbllocaltion_warehouses",
-        "watermark_col": None,
+        # date_create: NOT NULL, min 2022-04-03, max current → incremental-safe
+        "watermark_col": "date_create",
     },
     {
         "source_table":  "tblwarehouse_product",
@@ -64,7 +66,8 @@ TABLE_CONFIG = [
     },
     {
         "source_table":  "tbltransfer_warehouse_detail",
-        "watermark_col": None,
+        # No usable timestamp; append-only via id watermark.
+        "watermark_col": "id",
     },
     {
         "source_table":  "tblsuppliers",
@@ -84,7 +87,8 @@ TABLE_CONFIG = [
     },
     {
         "source_table":  "tbl_purchase_product_items",
-        "watermark_col": None,
+        # No timestamp cols in MySQL; append-only via auto_increment id watermark.
+        "watermark_col": "id",
     },
     {
         "source_table":  "tbl_productions_orders",
@@ -158,8 +162,11 @@ def extract_table(
         ):
             chunks.append(chunk)
 
-    if chunks:
-        df = pd.concat(chunks, ignore_index=True)
+    # Filter out empty/all-NA chunks before concat to avoid FutureWarning
+    # in pandas 3.x where concat behaviour with empty frames is changing.
+    non_empty = [c for c in chunks if not c.empty]
+    if non_empty:
+        df = pd.concat(non_empty, ignore_index=True)
     else:
         df = pd.DataFrame()
 
