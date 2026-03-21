@@ -114,7 +114,7 @@ print(SEP)
 NULL_KEY_CHECKS = [
     # (table, column, critical_threshold_pct, known_irrecoverable_pct)
     ("fact_orders",                "customer_key",  0.5,  None),
-    ("fact_orders",                "staff_key",     5.0,  None),
+    ("fact_orders",                "employee_key",  5.0,  None),
     ("fact_order_items",           "product_key",   0.5,  None),
     ("fact_order_items",           "customer_key",  0.5,  None),
     ("fact_delivery_items",        "product_key",   0.5,  None),
