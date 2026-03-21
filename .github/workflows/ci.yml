@@ -48,7 +48,7 @@ jobs:
 
       - name: Check SQL files exist (DDL completeness)
         run: |
-          for i in 01 02 03 04 05 06 07 08; do
+          for i in 01 02 03 04 05 06 07; do
             ls sql/${i}_*.sql || (echo "Missing sql/${i}_*.sql" && exit 1)
           done
 

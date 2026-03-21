@@ -69,6 +69,26 @@ CREATE TABLE staging.tbl_orders (
     date_cancel                     TIMESTAMP,
     user_cancel                     INT,
     is_end                          SMALLINT,
+    referenceId_api                 VARCHAR(250),
+    id_order_api                    VARCHAR(250),
+    pos                             INT,
+    table_discount_id               INT,
+    gift                            INT,
+    status_payment_orders           INT,
+    staff_coupon                    INT,
+    transporter_id                  INT,
+    charge_party                    VARCHAR(255),
+    price_other_expenses_delivery   NUMERIC(22,4),
+    total_quantity_had_outsource    NUMERIC(12,4),
+    count_outsource                 INT,
+    hold_the_goods                  INT,
+    so                              VARCHAR(255),
+    pi                              VARCHAR(255),
+    po_style                        VARCHAR(255),
+    type_items                      INT,
+    item_code                       VARCHAR(255),
+    ptm                             SMALLINT,
+    note_cancel                     TEXT,
     etl_loaded_at                   TIMESTAMP DEFAULT NOW()
 );
 
@@ -113,6 +133,28 @@ CREATE TABLE staging.tbl_order_items (
     date_active                     TIMESTAMP,
     unit_id                         INT,
     conversion_quantity_unit        NUMERIC(12,4),
+    promotion_item_gift_id          INT,
+    promotion_item_id               INT,
+    quantity_bs                     INT,
+    quantity_condition              NUMERIC(22,4),
+    quantity_outsource              NUMERIC(12,4),
+    quantity_plan                   NUMERIC(22,4),
+    quantity_productions_orders     NUMERIC(22,4),
+    quantity_child_sheet            NUMERIC(12,4),
+    quantity_sheet_bale             NUMERIC(12,4),
+    order_code                      VARCHAR(255),
+    command                         VARCHAR(255),
+    quantity_loss                   NUMERIC(22,4),
+    sample_quantity                 NUMERIC(22,4),
+    total_quantity_item             NUMERIC(22,4),
+    ct_counter_item                 INT,
+    hand_input_price                SMALLINT,
+    loss                            NUMERIC(12,4),
+    product_name_customer           VARCHAR(1000),
+    conversion_quantity_unit_default NUMERIC(12,4),
+    check_delivery                  INT,
+    is_updateprice                  INT,
+    is_lot                          SMALLINT,
     etl_loaded_at                   TIMESTAMP DEFAULT NOW()
 );
 
@@ -177,6 +219,17 @@ CREATE TABLE staging.tbl_deliveries (
     received_certificate            INT,
     id_branch                       INT,
     additional_costs                NUMERIC(22,4),
+    total_discount_percent_items    NUMERIC(22,4),
+    total_discount_direct_items     NUMERIC(22,4),
+    tax_id                          INT,
+    tax_name                        VARCHAR(255),
+    tax_rate                        NUMERIC(12,4),
+    discount_percent                NUMERIC(12,4),
+    type_id                         INT,
+    count_export_warehouse          INT,
+    person_contact_id               INT,
+    code_custom                     VARCHAR(255),
+    date_custom                     DATE,
     etl_loaded_at                   TIMESTAMP DEFAULT NOW()
 );
 
@@ -220,6 +273,15 @@ CREATE TABLE staging.tbl_delivery_items (
     quantity_payment                NUMERIC(22,4),
     unit_id                         INT,
     conversion_quantity_unit        NUMERIC(12,4),
+    id_import                       VARCHAR(255),
+    date_use                        NUMERIC(22,4),
+    quantity_unit_loss              NUMERIC(22,4),
+    quantity_stock_loss             NUMERIC(22,4),
+    quantity_payment_loss           NUMERIC(22,4),
+    quantity_unit_sample            NUMERIC(22,4),
+    quantity_stock_sample           NUMERIC(22,4),
+    quantity_payment_sample         NUMERIC(22,4),
+    check_loss                      INT,
     etl_loaded_at                   TIMESTAMP DEFAULT NOW()
 );
 
@@ -710,6 +772,9 @@ CREATE TABLE staging.tbl_manufactures (
     status_manufactures     INT,
     date_manufactures       TIMESTAMP,
     id_branch               INT,
+    warehouseman_id         INT,
+    warehouseman_date       TIMESTAMP,
+    user_manufactures       INT,
     etl_loaded_at           TIMESTAMP DEFAULT NOW()
 );
 
