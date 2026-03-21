@@ -1,7 +1,7 @@
-# run_pipeline.ps1 — Run the full DWH pipeline end-to-end
+﻿# run_pipeline.ps1 -- Run the full DWH pipeline end-to-end
 #
 # Usage:
-#   .\scripts\run_pipeline.ps1            # full run (extract + dbt)
+#   .\scripts\run_pipeline.ps1            # full run (ELT + dbt)
 #   .\scripts\run_pipeline.ps1 -EltOnly   # ELT only, skip dbt
 #   .\scripts\run_pipeline.ps1 -DbtOnly   # dbt only, skip ELT
 
@@ -11,7 +11,7 @@ param(
 )
 
 Set-StrictMode -Off
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 
 $root     = Split-Path $PSScriptRoot -Parent
 $python   = "$root\.venv\Scripts\python.exe"
@@ -20,13 +20,16 @@ $profiles = "$root\dbt_project"
 
 function Banner($text) {
     $line = "=" * 60
-    Write-Host "`n$line" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host $line -ForegroundColor Cyan
     Write-Host "  $text" -ForegroundColor Cyan
-    Write-Host "$line`n" -ForegroundColor Cyan
+    Write-Host $line -ForegroundColor Cyan
+    Write-Host ""
 }
 
 function Fail($msg) {
-    Write-Host "`n[FAIL] $msg" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "[FAIL] $msg" -ForegroundColor Red
     exit 1
 }
 
@@ -39,34 +42,43 @@ function Load-DotEnv($path) {
     }
 }
 
-# ── Preflight ────────────────────────────────────────────────
-if (-not (Test-Path $python)) { Fail ".venv not found. Run: python -m venv .venv && .venv\Scripts\pip install -r elt\requirements.txt" }
-if (-not $EltOnly -and -not (Test-Path $dbt)) { Fail ".venv_dbt not found. Run: py -3.11 -m venv .venv_dbt && .venv_dbt\Scripts\pip install dbt-postgres==1.9.0" }
-if (-not (Test-Path "$root\.env")) { Fail ".env file missing. Copy .env.example -> .env and fill in credentials." }
+# -- Preflight -------------------------------------------------------
+if (-not (Test-Path $python)) {
+    Fail ".venv not found. Run: python -m venv .venv && .venv\Scripts\pip install -r elt\requirements.txt"
+}
+if (-not $EltOnly -and -not (Test-Path $dbt)) {
+    Fail ".venv_dbt not found. Run: py -3.11 -m venv .venv_dbt && .venv_dbt\Scripts\pip install dbt-postgres==1.9.0"
+}
+if (-not (Test-Path "$root\.env")) {
+    Fail ".env file missing. Copy .env.example -> .env and fill in credentials."
+}
 
 # Load .env into current process environment (dbt reads env vars, not .env directly)
 Load-DotEnv "$root\.env"
 Write-Host "[ENV] Loaded .env from $root\.env" -ForegroundColor DarkGray
 
-# ── Stage 1: ELT ────────────────────────────────────────────
+# -- Stage 1: ELT (MySQL -> staging -> core) -------------------------
 if (-not $DbtOnly) {
-    Banner "STAGE 1 — ELT Pipeline (MySQL → staging → core)"
+    Banner "STAGE 1 -- ELT Pipeline (MySQL -> staging -> core)"
     $start = Get-Date
     & $python "$root\elt\pipeline.py" --stage all
     if ($LASTEXITCODE -ne 0) { Fail "ELT pipeline exited with code $LASTEXITCODE" }
     $elapsed = [int]((Get-Date) - $start).TotalSeconds
-    Write-Host "`n[OK] ELT completed in ${elapsed}s" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "[OK] ELT completed in ${elapsed}s" -ForegroundColor Green
 }
 
-# ── Stage 2: dbt ────────────────────────────────────────────
+# -- Stage 2: dbt (core -> mart) -------------------------------------
 if (-not $EltOnly) {
-    Banner "STAGE 2 — dbt (core → mart)"
+    Banner "STAGE 2 -- dbt (core -> mart)"
     $env:PYTHONUTF8 = "1"
     $start = Get-Date
     & $dbt run --profiles-dir $profiles --project-dir $profiles
     if ($LASTEXITCODE -ne 0) { Fail "dbt run exited with code $LASTEXITCODE" }
     $elapsed = [int]((Get-Date) - $start).TotalSeconds
-    Write-Host "`n[OK] dbt completed in ${elapsed}s" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "[OK] dbt completed in ${elapsed}s" -ForegroundColor Green
 }
 
-Write-Host "`n[DONE] Full pipeline finished successfully." -ForegroundColor Green
+Write-Host ""
+Write-Host "[DONE] Full pipeline finished successfully." -ForegroundColor Green
