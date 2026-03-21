@@ -8,7 +8,7 @@
     }
   },
 
-  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postCreateCommand": "bash -i .devcontainer/setup.sh",
 
   "forwardPorts": [8080],
   "portsAttributes": {
