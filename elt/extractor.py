@@ -45,7 +45,7 @@ TABLE_CONFIG = [
     },
     {
         "source_table":  "tbl_products",
-        "watermark_col": "date_updated",
+        "watermark_col": None,   # 8K rows → full load; 348 products have NULL date_updated → incremental unsafe
     },
     {
         "source_table":  "tblwarehouse",
