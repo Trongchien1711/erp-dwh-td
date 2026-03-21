@@ -30,10 +30,23 @@ function Fail($msg) {
     exit 1
 }
 
+function Load-DotEnv($path) {
+    Get-Content $path | Where-Object { $_ -match "^\s*[^#]\S+=\S" } | ForEach-Object {
+        $key, $val = $_ -split "=", 2
+        $key = $key.Trim()
+        $val = $val.Trim().Trim('"').Trim("'")
+        [System.Environment]::SetEnvironmentVariable($key, $val, "Process")
+    }
+}
+
 # ── Preflight ────────────────────────────────────────────────
 if (-not (Test-Path $python)) { Fail ".venv not found. Run: python -m venv .venv && .venv\Scripts\pip install -r elt\requirements.txt" }
 if (-not $EltOnly -and -not (Test-Path $dbt)) { Fail ".venv_dbt not found. Run: py -3.11 -m venv .venv_dbt && .venv_dbt\Scripts\pip install dbt-postgres==1.9.0" }
 if (-not (Test-Path "$root\.env")) { Fail ".env file missing. Copy .env.example -> .env and fill in credentials." }
+
+# Load .env into current process environment (dbt reads env vars, not .env directly)
+Load-DotEnv "$root\.env"
+Write-Host "[ENV] Loaded .env from $root\.env" -ForegroundColor DarkGray
 
 # ── Stage 1: ELT ────────────────────────────────────────────
 if (-not $DbtOnly) {
