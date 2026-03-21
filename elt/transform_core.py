@@ -210,37 +210,7 @@ WHERE dc.customer_id = tcg.customer_id
   AND dc.price_group_key IS DISTINCT FROM dpg.price_group_key;
 """
 
-# Fix NULL customer_key / employee_key do fact tables duoc tao truoc dim tables
-SQL_FIX_FACT_ORDERS_KEYS = """
-UPDATE core.fact_orders f
-SET
-    customer_key = dc.customer_key,
-    employee_key = ds.staff_key
-FROM staging.tbl_orders o
-LEFT JOIN core.dim_customer dc ON dc.customer_id = o.customer_id
-LEFT JOIN core.dim_staff    ds ON ds.staff_id    = o.employee_id
-WHERE f.order_id = o.id
-  AND (f.customer_key IS NULL OR f.employee_key IS NULL);
-"""
 
-SQL_FIX_FACT_ORDER_ITEMS_CUSTOMER_KEY = """
-UPDATE core.fact_order_items fi
-SET customer_key = dc.customer_key
-FROM staging.tbl_order_items oi
-JOIN  staging.tbl_orders      o  ON o.id = oi.order_id
-LEFT JOIN core.dim_customer  dc ON dc.customer_id = o.customer_id
-WHERE fi.order_item_id = oi.id
-  AND fi.customer_key IS NULL;
-"""
-
-SQL_FIX_FACT_WH_STOCK_PRODUCT_KEY = """
-UPDATE core.fact_warehouse_stock f
-SET product_key = dp.product_key
-FROM staging.tblwarehouse_product wp
-JOIN core.dim_product dp ON dp.product_id = wp.product_id
-WHERE f.stock_id = wp.id
-  AND f.product_key IS NULL;
-"""
 
 SQL_DIM_WAREHOUSE = """
 WITH updated AS (
@@ -366,67 +336,100 @@ WHERE NOT EXISTS (SELECT 1 FROM updated u WHERE u.manufacture_id = src.id);
 # ============================================
 
 SQL_FACT_ORDERS = """
-INSERT INTO core.fact_orders (
-    order_id, reference_no, customer_key, employee_key, order_date_key,
-    count_items, total_quantity, total_amount_items, total_tax_items,
-    total_discount_percent_items, total_discount_direct_items, grand_total_items,
-    total_tax, total_discount_percent, total_discount_direct,
-    cost_delivery, grand_total, total_cost, total_profit, total_payment,
-    status, status_payment, status_orders, type_orders, type_bills,
-    is_cancel, is_end, id_branch, warehouse_id, currencies,
-    date_created, date_updated, etl_loaded_at, etl_source
+-- Step 1: patch any existing rows where dim keys resolved late
+WITH fix_keys AS (
+    UPDATE core.fact_orders f
+    SET
+        customer_key = COALESCE(dc.customer_key, f.customer_key),
+        employee_key = COALESCE(ds.staff_key,    f.employee_key)
+    FROM staging.tbl_orders o
+    LEFT JOIN core.dim_customer dc ON dc.customer_id = o.customer_id
+    LEFT JOIN core.dim_staff    ds ON ds.staff_id    = o.employee_id
+    WHERE f.order_id = o.id
+      AND (f.customer_key IS NULL OR f.employee_key IS NULL)
+    RETURNING 1
+),
+-- Step 2: insert new rows only
+new_rows AS (
+    INSERT INTO core.fact_orders (
+        order_id, reference_no, customer_key, employee_key, order_date_key,
+        count_items, total_quantity, total_amount_items, total_tax_items,
+        total_discount_percent_items, total_discount_direct_items, grand_total_items,
+        total_tax, total_discount_percent, total_discount_direct,
+        cost_delivery, grand_total, total_cost, total_profit, total_payment,
+        status, status_payment, status_orders, type_orders, type_bills,
+        is_cancel, is_end, id_branch, warehouse_id, currencies,
+        date_created, date_updated, etl_loaded_at, etl_source
+    )
+    SELECT
+        o.id, o.reference_no,
+        dc.customer_key, ds.staff_key,
+        TO_CHAR(o.date::DATE, 'YYYYMMDD')::INT,
+        o.count_items, o.total_quantity, o.total_amount_items, o.total_tax_items,
+        o.total_discount_percent_items, o.total_discount_direct_items, o.grand_total_items,
+        o.total_tax, o.total_discount_percent, o.total_discount_direct,
+        o.cost_delivery, o.grand_total, o.total_cost, o.total_profit, o.total_payment,
+        o.status, o.status_payment, o.status_orders, o.type_orders, o.type_bills,
+        o.is_cancel, o.is_end, o.id_branch, o.warehouse_id, o.currencies,
+        o.date_created, o.date_updated, NOW(), 'tbl_orders'
+    FROM staging.tbl_orders o
+    LEFT JOIN core.dim_customer dc ON dc.customer_id = o.customer_id
+    LEFT JOIN core.dim_staff    ds ON ds.staff_id    = o.employee_id
+    WHERE NOT EXISTS (
+        SELECT 1 FROM core.fact_orders f WHERE f.order_id = o.id
+    )
+    RETURNING 1
 )
 SELECT
-    o.id,
-    o.reference_no,
-    dc.customer_key,
-    ds.staff_key,
-    TO_CHAR(o.date::DATE, 'YYYYMMDD')::INT,
-    o.count_items, o.total_quantity, o.total_amount_items, o.total_tax_items,
-    o.total_discount_percent_items, o.total_discount_direct_items, o.grand_total_items,
-    o.total_tax, o.total_discount_percent, o.total_discount_direct,
-    o.cost_delivery, o.grand_total, o.total_cost, o.total_profit, o.total_payment,
-    o.status, o.status_payment, o.status_orders, o.type_orders, o.type_bills,
-    o.is_cancel, o.is_end, o.id_branch, o.warehouse_id, o.currencies,
-    o.date_created, o.date_updated, NOW(), 'tbl_orders'
-FROM staging.tbl_orders o
-LEFT JOIN core.dim_customer dc ON dc.customer_id = o.customer_id
-LEFT JOIN core.dim_staff    ds ON ds.staff_id    = o.employee_id
-WHERE NOT EXISTS (
-    SELECT 1 FROM core.fact_orders f WHERE f.order_id = o.id
-);
+    (SELECT count(*) FROM fix_keys)  AS keys_fixed,
+    (SELECT count(*) FROM new_rows)  AS rows_inserted;
 """
 
 SQL_FACT_ORDER_ITEMS = """
-INSERT INTO core.fact_order_items (
-    order_item_id, order_id, customer_key, product_key, order_date_key,
-    quantity, price, amount,
-    tax_rate_item, tax_amount_item,
-    discount_percent_item, discount_percent_amount_item, discount_direct_amount_item,
-    total_amount, quantity_delivery, quantity_not_delivery,
-    cost, profit, cost_temporary_capital, profit_temporary_capital,
-    quantity_returned, type_item, item_code, type_gift, active, unit_id,
-    etl_loaded_at, etl_source
+WITH fix_keys AS (
+    UPDATE core.fact_order_items fi
+    SET customer_key = COALESCE(dc.customer_key, fi.customer_key)
+    FROM staging.tbl_order_items oi
+    JOIN  staging.tbl_orders     o  ON o.id = oi.order_id
+    LEFT JOIN core.dim_customer  dc ON dc.customer_id = o.customer_id
+    WHERE fi.order_item_id = oi.id
+      AND fi.customer_key IS NULL
+    RETURNING 1
+),
+new_rows AS (
+    INSERT INTO core.fact_order_items (
+        order_item_id, order_id, customer_key, product_key, order_date_key,
+        quantity, price, amount,
+        tax_rate_item, tax_amount_item,
+        discount_percent_item, discount_percent_amount_item, discount_direct_amount_item,
+        total_amount, quantity_delivery, quantity_not_delivery,
+        cost, profit, cost_temporary_capital, profit_temporary_capital,
+        quantity_returned, type_item, item_code, type_gift, active, unit_id,
+        etl_loaded_at, etl_source
+    )
+    SELECT
+        oi.id, oi.order_id,
+        dc.customer_key, dp.product_key,
+        TO_CHAR(o.date::DATE, 'YYYYMMDD')::INT,
+        oi.quantity, oi.price, oi.amount,
+        oi.tax_rate_item, oi.tax_amount_item,
+        oi.discount_percent_item, oi.discount_percent_amount_item, oi.discount_direct_amount_item,
+        oi.total_amount, oi.quantity_delivery, oi.quantity_not_delivery,
+        oi.cost, oi.profit, oi.cost_temporary_capital, oi.profit_temporary_capital,
+        oi.quantity_returned, oi.type_item, oi.item_code, oi.type_gift, oi.active, oi.unit_id,
+        NOW(), 'tbl_order_items'
+    FROM staging.tbl_order_items oi
+    JOIN  staging.tbl_orders      o  ON o.id  = oi.order_id
+    LEFT JOIN core.dim_customer  dc ON dc.customer_id = o.customer_id
+    LEFT JOIN core.dim_product   dp ON dp.product_id  = oi.item_id
+    WHERE NOT EXISTS (
+        SELECT 1 FROM core.fact_order_items f WHERE f.order_item_id = oi.id
+    )
+    RETURNING 1
 )
 SELECT
-    oi.id, oi.order_id,
-    dc.customer_key,
-    dp.product_key,
-    TO_CHAR(o.date::DATE, 'YYYYMMDD')::INT,
-    oi.quantity, oi.price, oi.amount,
-    oi.tax_rate_item, oi.tax_amount_item,
-    oi.discount_percent_item, oi.discount_percent_amount_item, oi.discount_direct_amount_item,
-    oi.total_amount, oi.quantity_delivery, oi.quantity_not_delivery,
-    oi.cost, oi.profit, oi.cost_temporary_capital, oi.profit_temporary_capital,
-    oi.quantity_returned, oi.type_item, oi.item_code, oi.type_gift, oi.active, oi.unit_id,
-    NOW(), 'tbl_order_items'
-FROM staging.tbl_order_items oi
-JOIN  staging.tbl_orders      o  ON o.id  = oi.order_id
-LEFT JOIN core.dim_customer  dc ON dc.customer_id = o.customer_id
-LEFT JOIN core.dim_product   dp ON dp.product_id  = oi.item_id
-WHERE NOT EXISTS (
-    SELECT 1 FROM core.fact_order_items f WHERE f.order_item_id = oi.id
-);
+    (SELECT count(*) FROM fix_keys)  AS keys_fixed,
+    (SELECT count(*) FROM new_rows)  AS rows_inserted;
 """
 
 SQL_FACT_DELIVERY_ITEMS = """
@@ -462,31 +465,51 @@ WHERE NOT EXISTS (
 """
 
 SQL_FACT_WH_STOCK = """
-INSERT INTO core.fact_warehouse_stock (
-    stock_id, product_key, warehouse_key, location_key, import_date_key,
-    quantity, quantity_left, quantity_export,
-    quantity_exchange, quantity_exchange_left, quantity_exchange_export,
-    product_quantity_unit, product_quantity_unit_export, product_quantity_unit_left,
-    product_quantity_payment, product_quantity_payment_export, product_quantity_payment_left,
-    price, type_items, type_export, type_transfer, lot_code, date_sx, date_sd, series,
-    etl_loaded_at, etl_source
+WITH fix_keys AS (
+    -- Fix NULL product_key + backfill NULL location_key for existing rows
+    UPDATE core.fact_warehouse_stock f
+    SET
+        product_key  = COALESCE(dp.product_key,  f.product_key),
+        location_key = COALESCE(dl.location_key, f.location_key)
+    FROM staging.tblwarehouse_product wp
+    LEFT JOIN core.dim_product            dp ON dp.product_id   = wp.product_id
+    LEFT JOIN core.dim_warehouse_location dl ON dl.location_id  = wp.localtion
+    WHERE f.stock_id = wp.id
+      AND (f.product_key IS NULL OR f.location_key IS NULL)
+    RETURNING 1
+),
+new_rows AS (
+    INSERT INTO core.fact_warehouse_stock (
+        stock_id, product_key, warehouse_key, location_key, import_date_key,
+        quantity, quantity_left, quantity_export,
+        quantity_exchange, quantity_exchange_left, quantity_exchange_export,
+        product_quantity_unit, product_quantity_unit_export, product_quantity_unit_left,
+        product_quantity_payment, product_quantity_payment_export, product_quantity_payment_left,
+        price, type_items, type_export, type_transfer, lot_code, date_sx, date_sd, series,
+        etl_loaded_at, etl_source
+    )
+    SELECT
+        wp.id, dp.product_key, dw.warehouse_key, dl.location_key,
+        TO_CHAR(wp.date_import::DATE, 'YYYYMMDD')::INT,
+        wp.quantity, wp.quantity_left, wp.quantity_export,
+        wp.quantity_exchange, wp.quantity_exchange_left, wp.quantity_exchange_export,
+        wp.product_quantity_unit, wp.product_quantity_unit_export, wp.product_quantity_unit_left,
+        wp.product_quantity_payment, wp.product_quantity_payment_export, wp.product_quantity_payment_left,
+        wp.price, wp.type_items, wp.type_export, wp.type_transfer,
+        wp.lot_code, wp.date_sx, wp.date_sd, wp.series,
+        NOW(), 'tblwarehouse_product'
+    FROM staging.tblwarehouse_product wp
+    LEFT JOIN core.dim_product            dp ON dp.product_id   = wp.product_id
+    LEFT JOIN core.dim_warehouse          dw ON dw.warehouse_id = wp.warehouse_id
+    LEFT JOIN core.dim_warehouse_location dl ON dl.location_id  = wp.localtion
+    WHERE NOT EXISTS (
+        SELECT 1 FROM core.fact_warehouse_stock f WHERE f.stock_id = wp.id
+    )
+    RETURNING 1
 )
 SELECT
-    wp.id, dp.product_key, dw.warehouse_key, NULL,
-    TO_CHAR(wp.date_import::DATE, 'YYYYMMDD')::INT,
-    wp.quantity, wp.quantity_left, wp.quantity_export,
-    wp.quantity_exchange, wp.quantity_exchange_left, wp.quantity_exchange_export,
-    wp.product_quantity_unit, wp.product_quantity_unit_export, wp.product_quantity_unit_left,
-    wp.product_quantity_payment, wp.product_quantity_payment_export, wp.product_quantity_payment_left,
-    wp.price, wp.type_items, wp.type_export, wp.type_transfer,
-    wp.lot_code, wp.date_sx, wp.date_sd, wp.series,
-    NOW(), 'tblwarehouse_product'
-FROM staging.tblwarehouse_product wp
-LEFT JOIN core.dim_product   dp ON dp.product_id   = wp.product_id
-LEFT JOIN core.dim_warehouse dw ON dw.warehouse_id = wp.warehouse_id
-WHERE NOT EXISTS (
-    SELECT 1 FROM core.fact_warehouse_stock f WHERE f.stock_id = wp.id
-);
+    (SELECT count(*) FROM fix_keys)  AS keys_fixed,
+    (SELECT count(*) FROM new_rows)  AS rows_inserted;
 """
 
 SQL_FACT_PO_ITEMS = """
@@ -652,48 +675,33 @@ TRANSFORM_STEPS = [
     ("fact_production_stages",       SQL_FACT_PRODUCTION_STAGES),
     ("fact_purchase_product_items",  SQL_FACT_PURCHASE_PRODUCT_ITEMS),
     ("fact_transfer_warehouse",      SQL_FACT_TRANSFER_WAREHOUSE),
-    # Fix NULL keys (fact tables duoc tao truoc khi dim co data)
-    ("fact_orders [FIX customer+employee keys]",    SQL_FIX_FACT_ORDERS_KEYS),
-    ("fact_order_items [FIX customer_key]",         SQL_FIX_FACT_ORDER_ITEMS_CUSTOMER_KEY),
-    ("fact_warehouse_stock [FIX product_key]",      SQL_FIX_FACT_WH_STOCK_PRODUCT_KEY),
 ]
 
 
 # Steps that are allowed to fail silently (e.g. column already exists, or missing column)
 _SOFT_STEPS = {"dim_customer [UPDATE price_group_key]"}
 
-# Pre-check SQLs for expensive UPDATE/FIX steps — skip if nothing to fix
-_CHECK_STEPS = {
-    "fact_orders [FIX customer+employee keys]": (
-        "SELECT 1 FROM core.fact_orders "
-        "WHERE customer_key IS NULL OR employee_key IS NULL LIMIT 1"
-    ),
-    "fact_order_items [FIX customer_key]": (
-        "SELECT 1 FROM core.fact_order_items WHERE customer_key IS NULL LIMIT 1"
-    ),
-    "fact_warehouse_stock [FIX product_key]": (
-        "SELECT 1 FROM core.fact_warehouse_stock WHERE product_key IS NULL LIMIT 1"
-    ),
-}
-
 
 def run_transforms(pg_engine):
     """Chay toan bo buoc transform staging -> core."""
     for step_name, sql in TRANSFORM_STEPS:
-        # Pre-check: skip expensive FIX steps when there is nothing to fix
-        if step_name in _CHECK_STEPS:
-            with pg_engine.connect() as chk_conn:
-                has_rows = chk_conn.execute(text(_CHECK_STEPS[step_name])).fetchone()
-            if not has_rows:
-                logger.info(f"[Transform] {step_name} -> skipped (no NULL keys).")
-                continue
-
         try:
             with pg_engine.begin() as conn:
                 result = conn.execute(text(sql))
-            logger.success(
-                f"[Transform] {step_name} -> {result.rowcount:,} rows affected."
-            )
+            # CTE steps (fact_orders, fact_order_items, fact_warehouse_stock) end with a
+            # SELECT returning (keys_fixed, rows_inserted) — log both counts.
+            if result.returns_rows:
+                row = result.fetchone()
+                keys_fixed    = int(row[0]) if row else 0
+                rows_inserted = int(row[1]) if row else 0
+                logger.success(
+                    f"[Transform] {step_name} -> "
+                    f"{keys_fixed:,} keys fixed, {rows_inserted:,} new rows inserted."
+                )
+            else:
+                logger.success(
+                    f"[Transform] {step_name} -> {result.rowcount:,} rows affected."
+                )
         except Exception as e:
             if step_name in _SOFT_STEPS:
                 short = str(e).split('\n')[0]
