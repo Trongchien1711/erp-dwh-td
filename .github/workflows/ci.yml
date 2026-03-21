@@ -68,7 +68,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install dbt-postgres
-        run: pip install dbt-postgres==1.9.1
+        run: pip install dbt-postgres==1.9.0
 
       - name: Write CI profiles.yml (no real DB)
         run: |
