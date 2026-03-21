@@ -1,6 +1,11 @@
 # ============================================================
 # docker-compose.yml  (Airflow 2.9 - LocalExecutor)
 #
+# Yêu cầu: tạo file airflow/.env với nội dung:
+#   MYSQL_PASSWORD=<mật khẩu MySQL>
+#   PG_PASSWORD=<mật khẩu PostgreSQL>
+# (docker compose tự động đọc file .env trong cùng thư mục)
+#
 # Cách chạy lần đầu:
 #   docker compose up airflow-init      # khởi tạo DB + user admin
 #   docker compose up -d                # chạy nền
@@ -34,13 +39,13 @@ x-airflow-common: &airflow-common
     MYSQL_PORT: "3306"
     MYSQL_DATABASE: test
     MYSQL_USER: root
-    MYSQL_PASSWORD: Chienvipso1
+    MYSQL_PASSWORD: ${MYSQL_PASSWORD}
 
     PG_HOST: host.docker.internal         # kết nối PostgreSQL trên máy host
     PG_PORT: "5432"
     PG_DATABASE: erp_dwh
     PG_USER: dwh_admin
-    PG_PASSWORD: "881686"
+    PG_PASSWORD: ${PG_PASSWORD}
 
     # ── dbt paths ─────────────────────────────────────────────
     DBT_PROFILES_DIR: /opt/dwh/dbt_project

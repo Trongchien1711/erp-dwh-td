@@ -6,11 +6,7 @@ profile: 'erp_dwh'
 
 # Thư mục chứa models, seeds, tests, ...
 model-paths: ["models"]
-analysis-paths: ["analyses"]
-test-paths: ["tests"]
-seed-paths: ["seeds"]
 macro-paths: ["macros"]
-snapshot-paths: ["snapshots"]
 
 # Thư mục output (không commit lên git)
 target-path: "target"

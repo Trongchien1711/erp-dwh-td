@@ -44,7 +44,7 @@ CONSTRAINT_URL="https://raw.githubusercontent.com/apache/airflow/constraints-${A
 pip install "apache-airflow==${AIRFLOW_VERSION}" \
     apache-airflow-providers-postgres \
     apache-airflow-providers-mysql \
-    dbt-postgres==1.8.0 \
+    dbt-postgres==1.9.0 \
     pymysql sqlalchemy loguru python-dotenv \
     --constraint "${CONSTRAINT_URL}"
 
