@@ -25,6 +25,7 @@ dbt_project/.user.yml
 dbt_project/profiles.yml   # real credentials — use profiles.yml.example
 
 # ── IDE ────────────────────────────────────────────────────────────────────
-.vscode/
+.vscode/*
+!.vscode/extensions.json
 .idea/
 *.code-workspace

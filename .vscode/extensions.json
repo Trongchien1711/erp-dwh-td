@@ -1,0 +1,14 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.pylance",
+    "charliermarsh.ruff",
+    "dbt-labs.dbt-power-user",
+    "mechatroner.rainbow-csv",
+    "bierner.markdown-mermaid",
+    "redhat.vscode-yaml",
+    "ms-vscode-remote.remote-containers",
+    "editorconfig.editorconfig",
+    "ms-azuretools.vscode-docker"
+  ]
+}
