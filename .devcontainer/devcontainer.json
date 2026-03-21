@@ -1,0 +1,41 @@
+{
+  "name": "ERP DWH — Airflow Dev",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11-bullseye",
+
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.11"
+    }
+  },
+
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+
+  "forwardPorts": [8080],
+  "portsAttributes": {
+    "8080": {
+      "label": "Airflow UI",
+      "onAutoForward": "openBrowser"
+    }
+  },
+
+  "remoteEnv": {
+    "AIRFLOW_HOME": "/workspaces/erp-dwh-td/airflow_home",
+    "AIRFLOW__CORE__LOAD_EXAMPLES": "False",
+    "AIRFLOW__CORE__DEFAULT_TIMEZONE": "Asia/Ho_Chi_Minh",
+    "PYTHONUTF8": "1",
+    "PYTHONPATH": "/workspaces/erp-dwh-td/elt"
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.pylance",
+        "bierner.markdown-mermaid"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python3.11"
+      }
+    }
+  }
+}

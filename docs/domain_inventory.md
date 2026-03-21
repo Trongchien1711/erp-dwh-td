@@ -45,6 +45,12 @@ Domain Inventory theo dõi hàng tồn kho, nhập xuất kho, sản xuất.
 - Hiệu suất sản xuất (actual vs plan quantity)
 - Công nhân năng suất so sánh (`number_hours` / `number`)
 
+## Data Quality Notes
+- `fact_transfer_warehouse.product_key`: ~3.03% NULL — sản phẩm bị xoá khỏi ERP trước khi DWH tồn tại (irrecoverable)
+- `fact_warehouse_stock.product_key`: ~1.01% NULL — tương tự, irrecoverable
+- `fact_production_stages.total_hours`: luôn = 0 — field `number_hours` không được nhập liệu trong ERP
+- `fact_warehouse_stock.location_key`: đã backfill đầy đủ (845,078 rows, commit e4ec364)
+
 ## dbt Mart Target
 `mart.inventory` — models: `fct_stock_snapshot`, `fct_inbound_outbound`, `fct_production_efficiency`
 

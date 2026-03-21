@@ -1,0 +1,10 @@
+name: Open in Codespaces (Airflow Dev)
+
+on:
+  workflow_dispatch:  # trigger thủ công từ GitHub UI
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "This file enables GitHub Codespaces for this repo"
