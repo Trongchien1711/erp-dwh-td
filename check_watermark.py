@@ -1,13 +1,17 @@
-import psycopg2, os
+import os
+from pathlib import Path
+
+import psycopg2
 from dotenv import load_dotenv
 
-load_dotenv(r"d:\Data Warehouse\.env")
+load_dotenv(Path(__file__).parent / ".env")
 
 conn = psycopg2.connect(
-    host="localhost", port=5432,
+    host=os.getenv("PG_HOST", "localhost"),
+    port=int(os.getenv("PG_PORT", "5432")),
     user=os.getenv("PG_USER", "dwh_admin"),
     password=os.getenv("PG_PASSWORD"),
-    dbname="erp_dwh"
+    dbname=os.getenv("PG_DATABASE", "erp_dwh")
 )
 cur = conn.cursor()
 

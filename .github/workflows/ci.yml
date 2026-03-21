@@ -68,24 +68,26 @@ jobs:
           python-version: "3.11"
 
       - name: Install dbt-postgres
-        run: pip install dbt-postgres==1.8.0
+        run: pip install dbt-postgres==1.9.1
 
       - name: Write CI profiles.yml (no real DB)
         run: |
-          cat > dbt_project/profiles_ci.yml << 'EOF'
+          cat > dbt_project/profiles.yml << 'EOF'
           erp_dwh:
             target: ci
             outputs:
               ci:
                 type: postgres
-                host: "{{ env_var('PGHOST', 'localhost') }}"
+                host: localhost
                 port: 5432
                 user: dwh_admin
-                password: "{{ env_var('PGPASSWORD', 'dummy') }}"
+                password: dummy_ci_password
                 dbname: erp_dwh
                 schema: mart
                 threads: 1
           EOF
+          # Strip leading whitespace (heredoc indentation artifact)
+          sed -i 's/^          //' dbt_project/profiles.yml
 
       - name: dbt compile (parse + graph resolution only)
         run: |
@@ -103,8 +105,6 @@ jobs:
             exit 1
           fi
           echo "dbt parse OK — no compilation errors"
-          fi
-          echo "dbt parse completed — no compilation errors"
 
   # ─────────────────────────────────────────────────────────────
   # Job 3: Python import & syntax check
