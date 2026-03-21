@@ -249,6 +249,7 @@ WITH updated AS (
         vat            = src.vat,
         address        = src.address,
         type_suppliers = src.type_suppliers,
+        groups_in      = src.groups_in,
         debt_limit     = src.debt_limit,
         is_active      = (src.active = 1),
         datecreated    = src.datecreated,
@@ -259,12 +260,12 @@ WITH updated AS (
 )
 INSERT INTO core.dim_supplier (
     supplier_id, supplier_code, company, representative,
-    phone, email, vat, address, type_suppliers,
+    phone, email, vat, address, type_suppliers, groups_in,
     debt_limit, is_active, datecreated, etl_loaded_at, etl_source
 )
 SELECT
     src.id, src.code, src.company, src.representative,
-    src.phone, src.email, src.vat, src.address, src.type_suppliers,
+    src.phone, src.email, src.vat, src.address, src.type_suppliers, src.groups_in,
     src.debt_limit, (src.active = 1), src.datecreated, NOW(), 'tblsuppliers'
 FROM staging.tblsuppliers src
 WHERE NOT EXISTS (SELECT 1 FROM updated u WHERE u.supplier_id = src.id);

@@ -49,6 +49,7 @@ CREATE TABLE core.fact_orders_2023    PARTITION OF core.fact_orders FOR VALUES F
 CREATE TABLE core.fact_orders_2024    PARTITION OF core.fact_orders FOR VALUES FROM (20240101) TO (20250101);
 CREATE TABLE core.fact_orders_2025    PARTITION OF core.fact_orders FOR VALUES FROM (20250101) TO (20260101);
 CREATE TABLE core.fact_orders_2026    PARTITION OF core.fact_orders FOR VALUES FROM (20260101) TO (20270101);
+CREATE TABLE core.fact_orders_2027    PARTITION OF core.fact_orders FOR VALUES FROM (20270101) TO (20280101);
 CREATE TABLE core.fact_orders_default PARTITION OF core.fact_orders DEFAULT;
 
 CREATE INDEX idx_fact_orders_id       ON core.fact_orders(order_id);
@@ -98,6 +99,7 @@ CREATE TABLE core.fact_order_items_2023    PARTITION OF core.fact_order_items FO
 CREATE TABLE core.fact_order_items_2024    PARTITION OF core.fact_order_items FOR VALUES FROM (20240101) TO (20250101);
 CREATE TABLE core.fact_order_items_2025    PARTITION OF core.fact_order_items FOR VALUES FROM (20250101) TO (20260101);
 CREATE TABLE core.fact_order_items_2026    PARTITION OF core.fact_order_items FOR VALUES FROM (20260101) TO (20270101);
+CREATE TABLE core.fact_order_items_2027    PARTITION OF core.fact_order_items FOR VALUES FROM (20270101) TO (20280101);
 CREATE TABLE core.fact_order_items_default PARTITION OF core.fact_order_items DEFAULT;
 
 CREATE INDEX idx_fact_oi_id       ON core.fact_order_items(order_item_id);
@@ -149,6 +151,7 @@ CREATE TABLE core.fact_delivery_items_2023    PARTITION OF core.fact_delivery_it
 CREATE TABLE core.fact_delivery_items_2024    PARTITION OF core.fact_delivery_items FOR VALUES FROM (20240101) TO (20250101);
 CREATE TABLE core.fact_delivery_items_2025    PARTITION OF core.fact_delivery_items FOR VALUES FROM (20250101) TO (20260101);
 CREATE TABLE core.fact_delivery_items_2026    PARTITION OF core.fact_delivery_items FOR VALUES FROM (20260101) TO (20270101);
+CREATE TABLE core.fact_delivery_items_2027    PARTITION OF core.fact_delivery_items FOR VALUES FROM (20270101) TO (20280101);
 CREATE TABLE core.fact_delivery_items_default PARTITION OF core.fact_delivery_items DEFAULT;
 
 CREATE INDEX idx_fact_di_id       ON core.fact_delivery_items(delivery_item_id);
@@ -226,6 +229,7 @@ CREATE TABLE core.fact_warehouse_export_2023    PARTITION OF core.fact_warehouse
 CREATE TABLE core.fact_warehouse_export_2024    PARTITION OF core.fact_warehouse_export FOR VALUES FROM (20240101) TO (20250101);
 CREATE TABLE core.fact_warehouse_export_2025    PARTITION OF core.fact_warehouse_export FOR VALUES FROM (20250101) TO (20260101);
 CREATE TABLE core.fact_warehouse_export_2026    PARTITION OF core.fact_warehouse_export FOR VALUES FROM (20260101) TO (20270101);
+CREATE TABLE core.fact_warehouse_export_2027    PARTITION OF core.fact_warehouse_export FOR VALUES FROM (20270101) TO (20280101);
 CREATE TABLE core.fact_warehouse_export_default PARTITION OF core.fact_warehouse_export DEFAULT;
 
 CREATE INDEX idx_fact_we_id      ON core.fact_warehouse_export(export_id);
@@ -301,6 +305,7 @@ CREATE TABLE core.fact_purchase_order_items_2023    PARTITION OF core.fact_purch
 CREATE TABLE core.fact_purchase_order_items_2024    PARTITION OF core.fact_purchase_order_items FOR VALUES FROM (20240101) TO (20250101);
 CREATE TABLE core.fact_purchase_order_items_2025    PARTITION OF core.fact_purchase_order_items FOR VALUES FROM (20250101) TO (20260101);
 CREATE TABLE core.fact_purchase_order_items_2026    PARTITION OF core.fact_purchase_order_items FOR VALUES FROM (20260101) TO (20270101);
+CREATE TABLE core.fact_purchase_order_items_2027    PARTITION OF core.fact_purchase_order_items FOR VALUES FROM (20270101) TO (20280101);
 CREATE TABLE core.fact_purchase_order_items_default PARTITION OF core.fact_purchase_order_items DEFAULT;
 
 CREATE INDEX idx_fact_poi_id       ON core.fact_purchase_order_items(po_item_id);
@@ -343,6 +348,7 @@ CREATE TABLE core.fact_purchase_product_items_2023    PARTITION OF core.fact_pur
 CREATE TABLE core.fact_purchase_product_items_2024    PARTITION OF core.fact_purchase_product_items FOR VALUES FROM (20240101) TO (20250101);
 CREATE TABLE core.fact_purchase_product_items_2025    PARTITION OF core.fact_purchase_product_items FOR VALUES FROM (20250101) TO (20260101);
 CREATE TABLE core.fact_purchase_product_items_2026    PARTITION OF core.fact_purchase_product_items FOR VALUES FROM (20260101) TO (20270101);
+CREATE TABLE core.fact_purchase_product_items_2027    PARTITION OF core.fact_purchase_product_items FOR VALUES FROM (20270101) TO (20280101);
 CREATE TABLE core.fact_purchase_product_items_default PARTITION OF core.fact_purchase_product_items DEFAULT;
 
 CREATE INDEX idx_fact_ppi_id      ON core.fact_purchase_product_items(pp_item_id);
@@ -374,6 +380,7 @@ CREATE TABLE core.fact_production_order_items_2023    PARTITION OF core.fact_pro
 CREATE TABLE core.fact_production_order_items_2024    PARTITION OF core.fact_production_order_items FOR VALUES FROM (20240101) TO (20250101);
 CREATE TABLE core.fact_production_order_items_2025    PARTITION OF core.fact_production_order_items FOR VALUES FROM (20250101) TO (20260101);
 CREATE TABLE core.fact_production_order_items_2026    PARTITION OF core.fact_production_order_items FOR VALUES FROM (20260101) TO (20270101);
+CREATE TABLE core.fact_production_order_items_2027    PARTITION OF core.fact_production_order_items FOR VALUES FROM (20270101) TO (20280101);
 CREATE TABLE core.fact_production_order_items_default PARTITION OF core.fact_production_order_items DEFAULT;
 
 CREATE INDEX idx_fact_proi_id      ON core.fact_production_order_items(prod_item_id);
@@ -414,9 +421,24 @@ CREATE TABLE core.fact_production_stages_2023    PARTITION OF core.fact_producti
 CREATE TABLE core.fact_production_stages_2024    PARTITION OF core.fact_production_stages FOR VALUES FROM (20240101) TO (20250101);
 CREATE TABLE core.fact_production_stages_2025    PARTITION OF core.fact_production_stages FOR VALUES FROM (20250101) TO (20260101);
 CREATE TABLE core.fact_production_stages_2026    PARTITION OF core.fact_production_stages FOR VALUES FROM (20260101) TO (20270101);
+CREATE TABLE core.fact_production_stages_2027    PARTITION OF core.fact_production_stages FOR VALUES FROM (20270101) TO (20280101);
 CREATE TABLE core.fact_production_stages_default PARTITION OF core.fact_production_stages DEFAULT;
 
 CREATE INDEX idx_fact_ps_id    ON core.fact_production_stages(prod_stage_id);
 CREATE INDEX idx_fact_ps_order ON core.fact_production_stages(productions_orders_id);
 CREATE INDEX idx_fact_ps_staff ON core.fact_production_stages(staff_key);
 CREATE INDEX idx_fact_ps_date  ON core.fact_production_stages(stage_date_key);
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- ADD PARTITIONS FOR EXISTING DATABASES
+-- Run this block manually each year (e.g. in Jan 2027 for year 2028).
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Example for 2028:
+-- CREATE TABLE IF NOT EXISTS core.fact_orders_2028 PARTITION OF core.fact_orders FOR VALUES FROM (20280101) TO (20290101);
+-- CREATE TABLE IF NOT EXISTS core.fact_order_items_2028 PARTITION OF core.fact_order_items FOR VALUES FROM (20280101) TO (20290101);
+-- CREATE TABLE IF NOT EXISTS core.fact_delivery_items_2028 PARTITION OF core.fact_delivery_items FOR VALUES FROM (20280101) TO (20290101);
+-- CREATE TABLE IF NOT EXISTS core.fact_warehouse_export_2028 PARTITION OF core.fact_warehouse_export FOR VALUES FROM (20280101) TO (20290101);
+-- CREATE TABLE IF NOT EXISTS core.fact_purchase_order_items_2028 PARTITION OF core.fact_purchase_order_items FOR VALUES FROM (20280101) TO (20290101);
+-- CREATE TABLE IF NOT EXISTS core.fact_purchase_product_items_2028 PARTITION OF core.fact_purchase_product_items FOR VALUES FROM (20280101) TO (20290101);
+-- CREATE TABLE IF NOT EXISTS core.fact_production_order_items_2028 PARTITION OF core.fact_production_order_items FOR VALUES FROM (20280101) TO (20290101);
+-- CREATE TABLE IF NOT EXISTS core.fact_production_stages_2028 PARTITION OF core.fact_production_stages FOR VALUES FROM (20280101) TO (20290101);

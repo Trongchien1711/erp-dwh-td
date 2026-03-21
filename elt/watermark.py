@@ -41,16 +41,21 @@ def init_watermark_table(pg_engine):
     logger.info("[Watermark] Table ready.")
 
 
-def get_watermark(pg_engine, table_name: str) -> str:
-    """Lấy watermark (last_loaded_at) của bảng. Trả về '0' nếu chưa có (ID-based tables)."""
+def get_watermark(pg_engine, table_name: str, default: str = '2020-01-01 00:00:00') -> str:
+    """
+    Lấy watermark (last_loaded_at) của bảng.
+    default: giá trị trả về khi bảng chưa có watermark.
+      - Dùng '2020-01-01 00:00:00' cho cột timestamp/datetime (mặc định)
+      - Dùng '0' cho cột integer ID (tránh MySQL cast '2020-01-01' → 2020)
+    """
     sql = """
         SELECT COALESCE(
             (SELECT last_loaded_at FROM staging.etl_watermark WHERE table_name = :tbl),
-            '2020-01-01 00:00:00'
+            :default
         ) AS wm
     """
     with pg_engine.connect() as conn:
-        result = conn.execute(text(sql), {"tbl": table_name}).fetchone()
+        result = conn.execute(text(sql), {"tbl": table_name, "default": default}).fetchone()
     wm = str(result[0])
     logger.info(f"[Watermark] {table_name} -> last_loaded_at = {wm}")
     return wm

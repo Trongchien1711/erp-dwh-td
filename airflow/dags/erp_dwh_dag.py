@@ -40,6 +40,56 @@ sys.path.insert(0, str(ELT_PATH))
 
 log = logging.getLogger(__name__)
 
+
+# ============================================================
+# HELPER — chạy extract+load cho một tập bảng
+# Định nghĩa ngoài DAG context để @task decorator có thể gọi.
+# ============================================================
+def _run_extract_for_tables(table_names: set):
+    """
+    Extract từ MySQL và load vào staging cho các bảng trong table_names.
+    Replicate logic của run_extract_load() trong pipeline.py,
+    nhưng chỉ chạy cho subset bảng được chỉ định.
+    """
+    from datetime import datetime as _dt
+    from connections import get_mysql_engine, get_pg_engine
+    from watermark   import init_watermark_table, get_watermark, set_watermark
+    from extractor   import TABLE_CONFIG, extract_table
+    from loader      import load_table
+
+    mysql_engine = get_mysql_engine()
+    pg_engine    = get_pg_engine()
+    try:
+        init_watermark_table(pg_engine)
+        configs = [c for c in TABLE_CONFIG if c["source_table"] in table_names]
+        for cfg in configs:
+            source = cfg["source_table"]
+            wm_col = cfg["watermark_col"]
+            try:
+                # 📚 Dùng '0' cho bảng dùng integer ID làm watermark
+                #    để tránh MySQL cast '2020-01-01' → 2020 (số nguyên)
+                wm_default = "0" if wm_col == "id" else "2020-01-01 00:00:00"
+                last_wm = get_watermark(pg_engine, source, default=wm_default)
+                df      = extract_table(mysql_engine, source, wm_col, last_wm)
+                if df.empty:
+                    log.info(f"[Extract] {source} → no new data, skipped")
+                    continue
+                load_table(pg_engine, df, source, wm_col)
+                if wm_col and wm_col in df.columns:
+                    max_wm = df[wm_col].max()
+                    new_wm = last_wm if str(max_wm) == "NaT" else str(max_wm)
+                else:
+                    new_wm = _dt.now().strftime("%Y-%m-%d %H:%M:%S")
+                set_watermark(pg_engine, source, new_wm)
+                log.info(f"[Extract] {source} → {len(df):,} rows, wm updated to {new_wm}")
+            except Exception as e:
+                log.error(f"[Extract] {source} FAILED: {e}")
+                raise   # propagate so Airflow marks task as failed + retries
+    finally:
+        mysql_engine.dispose()
+        pg_engine.dispose()
+
+
 # ============================================================
 # 1. DEFAULT ARGS
 #    Áp dụng cho tất cả task trong DAG nếu không override.
@@ -124,11 +174,6 @@ with DAG(
         @task(task_id="extract_sales_tables")
         def extract_sales():
             """Extract bảng liên quan sales: orders, order_items, deliveries..."""
-            from connections import get_mysql_engine, get_pg_engine
-            from watermark   import init_watermark_table, get_watermark, set_watermark
-            from extractor   import TABLE_CONFIG, extract_table
-            from loader      import load_table
-
             SALES_TABLES = {
                 "tbl_orders", "tbl_order_items",
                 "tbl_deliveries", "tbl_delivery_items",

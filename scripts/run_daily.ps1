@@ -21,8 +21,8 @@ $ErrorActionPreference = "Stop"
 $ROOT    = "d:\Data Warehouse"
 $ELT_DIR = "$ROOT\elt"
 $LOG_DIR = "$ROOT\logs"
-$PYTHON  = "C:\Users\bus_an\AppData\Local\Python\pythoncore-3.14-64\python.exe"
-$DBT     = "C:\Users\bus_an\AppData\Local\Programs\Python\Python311\Scripts\dbt.exe"
+$PYTHON  = "$ROOT\.venv\Scripts\python.exe"
+$DBT     = "$ROOT\.venv\Scripts\dbt.exe"
 $DATE    = Get-Date -Format "yyyyMMdd"
 $NOW     = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 $LOG     = "$LOG_DIR\daily_$DATE.log"
@@ -63,8 +63,8 @@ if (-not $SkipDbt -and $exitCode -eq 0) {
         $env:PYTHONUTF8 = "1"
         $dbtArgs = @(
             "run",
-            "--profiles-dir", $ROOT\dbt_project,
-            "--project-dir",  $ROOT\dbt_project
+            "--profiles-dir", "$ROOT\dbt_project",
+            "--project-dir",  "$ROOT\dbt_project"
         )
         $output = & $DBT @dbtArgs 2>&1
         $output | ForEach-Object { Write-Log "  $_" }
@@ -92,8 +92,8 @@ if (-not $SkipDbt -and $exitCode -eq 0) {
         $env:PYTHONUTF8 = "1"
         $dbtTestArgs = @(
             "test",
-            "--profiles-dir", $ROOT\dbt_project,
-            "--project-dir",  $ROOT\dbt_project
+            "--profiles-dir", "$ROOT\dbt_project",
+            "--project-dir",  "$ROOT\dbt_project"
         )
         $output = & $DBT @dbtTestArgs 2>&1
         $output | ForEach-Object { Write-Log "  $_" }

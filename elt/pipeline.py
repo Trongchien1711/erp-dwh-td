@@ -51,7 +51,10 @@ def run_extract_load(mysql_engine, pg_engine, table_filter: str = None):
         wm_col  = cfg["watermark_col"]
 
         try:
-            last_wm = get_watermark(pg_engine, source)
+            # Dùng '0' cho bảng dùng integer ID làm watermark
+            # để tránh MySQL cast '2020-01-01 00:00:00' → 2020 (bỏ sót id < 2020)
+            wm_default = "0" if wm_col == "id" else "2020-01-01 00:00:00"
+            last_wm = get_watermark(pg_engine, source, default=wm_default)
             df      = extract_table(mysql_engine, source, wm_col, last_wm)
 
             if df.empty:

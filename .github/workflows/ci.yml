@@ -90,14 +90,19 @@ jobs:
       - name: dbt compile (parse + graph resolution only)
         run: |
           cd dbt_project
+          set +e
           PYTHONUTF8=1 dbt parse \
             --profiles-dir . \
             --profile erp_dwh \
-            --target ci 2>&1 | tee /tmp/dbt_parse.log || true
-          # dbt parse exits non-zero when no DB — check for compile errors specifically
-          if grep -i "compilation error\|yaml error\|jinja error" /tmp/dbt_parse.log; then
-            echo "dbt compilation errors found"
+            --target ci 2>&1 | tee /tmp/dbt_parse.log
+          set -e
+          # dbt parse may exit non-zero for DB connection issues — that's OK in CI.
+          # Fail only if there are actual compilation/YAML/Jinja errors.
+          if grep -qi "compilation error\|yaml error\|jinja error\|Parsing failed\|could not parse" /tmp/dbt_parse.log; then
+            echo "ERROR: dbt compilation errors detected — check output above"
             exit 1
+          fi
+          echo "dbt parse OK — no compilation errors"
           fi
           echo "dbt parse completed — no compilation errors"
 
@@ -127,14 +132,31 @@ jobs:
 
       - name: Check for hardcoded credentials
         run: |
-          # Fail if any plaintext password found in tracked Python/SQL files
+          # Scan Python, SQL, and YAML files for hardcoded passwords.
+          # Excludes jinja env_var() patterns so profiles.yml stays clean.
+          FOUND=0
+          # Python/SQL: password = 'value' or password = "value"
           if grep -rn \
             --include="*.py" \
             --include="*.sql" \
-            -E "password\s*=\s*['\"][^'\"]{3,}" \
+            -E "password\s*=\s*['\"][^'\"{}]{3,}" \
             --exclude-dir=".venv" \
             --exclude-dir=".venv_dbt" \
-            . | grep -v ".env" | grep -v "profiles.yml"; then
-            echo "WARNING: possible hardcoded credentials found"
+            . | grep -v ".env"; then
+            FOUND=1
           fi
-          echo "Credential check done"
+          # YAML: password: "value" (not a Jinja template)
+          if grep -rn \
+            --include="*.yml" \
+            --include="*.yaml" \
+            -E "password:\s+['\"][^'\"{}]{3,}" \
+            --exclude-dir=".venv" \
+            --exclude="profiles.yml.example" \
+            . ; then
+            FOUND=1
+          fi
+          if [ $FOUND -ne 0 ]; then
+            echo "ERROR: hardcoded credentials found — remove them before merging"
+            exit 1
+          fi
+          echo "Credential check passed"
