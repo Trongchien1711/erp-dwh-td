@@ -1,0 +1,11 @@
+userid,code_client,prefix_client,company,company_short,representative,fullname,phonenumber,email_client,type_client,country,city,district,ward,address,vat,debt_limit,debt_limit_day,discount,table_price_id,status_clients,vip_rating,time_payment,active,datecreated,date_update
+1,CUST001,CTY,Alpha Trading Co.,Alpha,Nguyen Van A,Nguyen Van A,0901234001,info@alpha.vn,1,237,HCM,1,1,123 Nguyen Hue,0301234567-001,0,30,0,1,1,0,30,1,2024-01-15 08:00:00,2025-10-01 10:00:00
+2,CUST002,CTY,Beta Garment Ltd.,Beta,Tran Thi B,Tran Thi B,0901234002,info@beta.vn,1,237,HCM,3,5,45 Le Loi,0301234567-002,0,30,2,1,1,1,45,1,2024-02-01 09:00:00,2025-11-15 14:00:00
+3,CUST003,HKD,Gamma Store,Gamma,Le Van C,Le Van C,0901234003,contact@gamma.vn,2,237,HN,2,3,88 Ba Dinh,0301234567-003,0,0,0,2,1,0,0,1,2024-03-10 10:00:00,2025-09-20 09:00:00
+4,CUST004,CTY,Delta Machinery JSC,Delta,Pham Thi D,Pham Thi D,0901234004,sales@delta.vn,1,237,DN,4,8,77 Hung Vuong,0301234567-004,0,60,5,1,1,2,60,1,2024-04-05 11:00:00,2026-01-10 16:00:00
+5,CUST005,CTY,Epsilon Textiles,Epsilon,Hoang Van E,Hoang Van E,0901234005,info@epsilon.vn,1,237,HCM,5,12,200 CMT8,0301234567-005,0,30,3,2,1,1,30,1,2024-05-20 08:30:00,2025-12-05 11:00:00
+6,CUST006,HKD,Zeta Electronics,Zeta,Nguyen Thi F,Nguyen Thi F,0901234006,office@zeta.vn,2,237,HCM,1,2,15 Ly Tu Trong,0301234567-006,0,0,0,1,1,0,0,1,2024-06-01 09:15:00,2025-08-22 13:00:00
+7,CUST007,CTY,Eta Plastics Corp,Eta,Vu Van G,Vu Van G,0901234007,info@eta.vn,1,237,BD,6,15,33 Thu Dau Mot,0301234567-007,0,45,1,1,1,0,45,1,2024-07-14 10:00:00,2026-01-20 08:00:00
+8,CUST008,CTY,Theta Chemicals,Theta,Do Thi H,Do Thi H,0901234008,contact@theta.vn,1,237,HP,7,18,99 Le Hong Phong,,0,30,0,1,2,0,30,0,2024-08-01 11:30:00,2025-07-01 14:00:00
+9,CUST009,CTY,Iota Furniture Ltd.,Iota,Dinh Van I,Dinh Van I,0901234009,info@iota.vn,1,237,HCM,2,4,55 Dien Bien Phu,0301234567-009,0,90,10,2,1,3,90,1,2024-09-12 08:00:00,2026-02-01 09:00:00
+10,CUST010,CTY,Kappa Engineering,Kappa,Phan Thi K,Phan Thi K,0901234010,sales@kappa.vn,1,237,HCM,8,20,12 Nguyen Van Linh,0301234567-010,0,60,2,1,1,1,60,1,2024-10-08 09:30:00,2025-11-30 16:00:00

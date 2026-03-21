@@ -1,0 +1,8 @@
+id,prefix,code,company,abbreviation,representative,phone,email,vat,address,city,district,ward,country,groups_in,type,type_suppliers,debt_limit,debt_begin,time_payment,deadline_contract,active,datecreated,date_update
+1,CTY,SUP-001,Viet Textile Supply Co.,VTS,Nguyen Van Hung,0281234001,supply@vts.vn,0100123456-001,55 Cach Mang Thang 8,HCM,1,1,237,1,1,1,0,0,30,2027-12-31,1,2023-01-05 08:00:00,2025-10-01 10:00:00
+2,CTY,SUP-002,Asia Fabric Ltd.,AFB,Tran Thi Mai,0281234002,info@asiafab.vn,0100123456-002,22 Nguyen Dinh Chieu,HCM,3,5,237,1,2,1,0,0,45,2026-12-31,1,2023-02-10 09:00:00,2025-11-15 11:00:00
+3,CTY,SUP-003,Nam Phat Thread JSC,NPT,Le Van Binh,0281234003,sales@namphat.vn,0100123456-003,88 Ly Thuong Kiet,HN,2,3,237,1,1,1,0,0,30,2027-06-30,1,2023-03-15 10:00:00,2025-09-20 14:00:00
+4,TNHH,SUP-004,Dong Nam Zipper Co.,DNZ,Pham Duc Thinh,0281234004,info@dnzipper.vn,0100123456-004,44 Tran Hung Dao,DN,4,8,237,1,1,2,0,0,15,2026-06-30,1,2023-04-01 08:30:00,2026-01-10 09:00:00
+5,CTY,SUP-005,Hoang Long Buttons Ltd.,HLB,Hoang Thi Thu,0281234005,office@hoanglongbtn.vn,0100123456-005,77 Nguyen Trai,HCM,5,12,237,1,2,2,0,0,30,2027-12-31,1,2023-05-20 11:00:00,2025-08-01 16:00:00
+6,CTY,SUP-006,Mien Bac Denim INC,MBD,Vu Quoc Cuong,0281234006,contact@mbdenim.vn,0100123456-006,11 Cau Giay,HN,2,3,237,1,1,1,0,0,60,2026-12-31,1,2023-06-10 09:00:00,2025-07-15 10:00:00
+7,TNHH,SUP-007,Thai Binh Packaging,TBP,Dinh Van Nam,0281234007,info@thaibinhpkg.vn,0100123456-007,33 Quang Trung,TB,6,15,237,1,3,3,0,0,30,2027-03-31,1,2023-07-01 08:00:00,2026-02-01 11:00:00

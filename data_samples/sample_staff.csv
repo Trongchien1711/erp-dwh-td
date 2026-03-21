@@ -1,0 +1,9 @@
+staffid,email,firstname,lastname,phonenumber,gender,birthday,day_in,status_work,role,admin,active,id_branch,role_level_id,date_update
+1,admin@company.vn,Admin,System,0901000001,Male,1985-01-01,2020-01-01,1,1,1,1,1,1,2025-01-01 08:00:00
+2,sales01@company.vn,Minh,Nguyen,0901000002,Male,1992-03-15,2021-06-01,1,2,0,1,1,2,2025-06-01 09:00:00
+3,sales02@company.vn,Lan,Tran,0901000003,Female,1994-07-20,2022-01-10,1,2,0,1,1,2,2025-09-15 10:00:00
+4,warehouse01@company.vn,Hung,Le,0901000004,Male,1990-11-05,2021-03-15,1,3,0,1,1,3,2025-04-01 08:00:00
+5,warehouse02@company.vn,Hoa,Pham,0901000005,Female,1996-04-12,2023-07-01,1,3,0,1,1,3,2025-07-01 09:00:00
+6,purchase@company.vn,Duc,Hoang,0901000006,Male,1988-09-25,2020-08-15,1,4,0,1,1,4,2025-08-01 10:00:00
+7,manager@company.vn,Thanh,Vu,0901000007,Male,1982-12-10,2019-01-01,1,5,1,1,1,5,2025-10-01 08:00:00
+8,production@company.vn,Tuyen,Do,0901000008,Female,1993-06-30,2022-04-01,1,6,0,1,1,6,2025-05-01 09:00:00
