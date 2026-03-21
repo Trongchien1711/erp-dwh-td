@@ -202,7 +202,9 @@ dbt parse --profiles-dir . --project-dir .
 
 # 4. Nếu có DB local — chạy full pipeline
 python elt/pipeline.py --stage all
-cd dbt_project && dbt run --profiles-dir . && dbt test --profiles-dir .
+# dbt cần Python 3.11 (dùng .venv_dbt riêng)
+$env:PYTHONUTF8="1"; .venv_dbt\Scripts\dbt.exe run --profiles-dir "d:\Data Warehouse\dbt_project" --project-dir "d:\Data Warehouse\dbt_project"
+.venv_dbt\Scripts\dbt.exe test --profiles-dir "d:\Data Warehouse\dbt_project"  --project-dir "d:\Data Warehouse\dbt_project"
 
 # 5. Health check
 python check_pipeline_health.py

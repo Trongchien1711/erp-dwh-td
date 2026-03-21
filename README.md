@@ -116,7 +116,7 @@ erp-dwh-td/
 ### 1. Prerequisites
 - PostgreSQL 16 running locally (or update `.env`)
 - MySQL / MariaDB running with ERP data
-- Python 3.11+ (dbt requires ≤ 3.13; ELT works on 3.14)
+- Python 3.11 for dbt (`py -3.11`); ELT works on any Python 3.x in `.venv`
 
 ### 2. Configure credentials
 ```bash
@@ -150,17 +150,25 @@ python pipeline.py --stage all
 python pipeline.py --table tblwarehouse_product
 ```
 
-### 5. Run dbt (requires Python 3.11)
+### 5. Run dbt (Python 3.11 venv required)
+
+dbt does not support Python 3.13+. Use the dedicated `.venv_dbt` (Python 3.11):
+
 ```powershell
-$env:PYTHONUTF8 = "1"
-$dbt = "C:\Users\...\Python311\Scripts\dbt.exe"
+# Create once (first time only)
+py -3.11 -m venv .venv_dbt
+.venv_dbt\Scripts\pip install dbt-postgres==1.9.0
 
 # Run all models
-& $dbt run --profiles-dir "d:\Data Warehouse\dbt_project" `
-           --project-dir  "d:\Data Warehouse\dbt_project"
+$env:PYTHONUTF8 = "1"
+.venv_dbt\Scripts\dbt.exe run `
+    --profiles-dir "d:\Data Warehouse\dbt_project" `
+    --project-dir  "d:\Data Warehouse\dbt_project"
 
 # Run specific model + downstream
-& $dbt run --select fct_stock_snapshot+ ...
+.venv_dbt\Scripts\dbt.exe run --select fct_stock_snapshot+ `
+    --profiles-dir "d:\Data Warehouse\dbt_project" `
+    --project-dir  "d:\Data Warehouse\dbt_project"
 ```
 
 ---
