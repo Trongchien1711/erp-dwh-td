@@ -33,7 +33,7 @@ function Fail($msg) {
     exit 1
 }
 
-function Load-DotEnv($path) {
+function Import-DotEnv($path) {
     Get-Content $path | Where-Object { $_ -match "^\s*[^#]\S+=\S" } | ForEach-Object {
         $key, $val = $_ -split "=", 2
         $key = $key.Trim()
@@ -54,7 +54,7 @@ if (-not (Test-Path "$root\.env")) {
 }
 
 # Load .env into current process environment (dbt reads env vars, not .env directly)
-Load-DotEnv "$root\.env"
+Import-DotEnv "$root\.env"
 Write-Host "[ENV] Loaded .env from $root\.env" -ForegroundColor DarkGray
 
 # -- Stage 1: ELT (MySQL -> staging -> core) -------------------------

@@ -12,7 +12,17 @@
 $ErrorActionPreference = "Stop"
 
 # ─── Config ──────────────────────────────────────────────────
-$PG_BIN     = "C:\Program Files\PostgreSQL\16\bin"   # Điều chỉnh nếu khác version
+# Tu dong tim pg_dump: uu tien tren PATH, sau do thu cac version pho bien
+$pgDumpCmd = Get-Command pg_dump -ErrorAction SilentlyContinue
+$pgDump = if ($pgDumpCmd) { $pgDumpCmd.Source } else { $null }
+if (-not $pgDump) {
+    foreach ($v in @(18,17,16,15,14)) {
+        $candidate = "C:\Program Files\PostgreSQL\$v\bin\pg_dump.exe"
+        if (Test-Path $candidate) { $pgDump = $candidate; break }
+    }
+}
+if (-not $pgDump) { Write-Error "pg_dump not found. Install PostgreSQL or add bin to PATH."; exit 1 }
+$PG_BIN     = Split-Path $pgDump -Parent
 $PGHOST     = "localhost"
 $PGPORT     = "5432"
 $PGUSER     = "dwh_admin"
@@ -32,7 +42,7 @@ if (Test-Path $ENV_FILE) {
         }
     }
 } else {
-    Write-Warning ".env không tìm thấy — PGPASSWORD cần được set thủ công"
+    Write-Warning ".env not found -- PGPASSWORD must be set manually"
 }
 
 # ─── Ensure backup directory ──────────────────────────────────
@@ -42,13 +52,8 @@ if (-not (Test-Path $BACKUP_DIR)) {
 }
 
 # ─── Run pg_dump ──────────────────────────────────────────────
-Write-Host "[$DATE] Starting backup → $OUTFILE"
-
-$pgDump = Join-Path $PG_BIN "pg_dump.exe"
-if (-not (Test-Path $pgDump)) {
-    # Try PATH fallback
-    $pgDump = "pg_dump"
-}
+Write-Host "[$DATE] Starting backup -> $OUTFILE"
+Write-Host "  Using: $pgDump"
 
 & $pgDump `
     --host=$PGHOST `

@@ -26,7 +26,11 @@ renamed as (
         company,
         company_short,
         representative,
-        coalesce(representative, company) as fullname,   -- fullname NULL in ERP; derive from representative → company
+        coalesce(
+            representative,
+            company,
+            customer_code   -- fallback: nếu cả hai NULL thì dùng mã khách
+        ) as fullname,   -- fullname NULL in ERP; derive from representative → company → code
         phonenumber,
         email,
 

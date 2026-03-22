@@ -124,7 +124,7 @@ TABLE_CONFIG = [
     },
 ]
 
-CHUNK_SIZE = 5000
+CHUNK_SIZE = 50000  # 50K rows/chunk -- giam 10x roundtrips so voi 5000
 
 
 def extract_table(

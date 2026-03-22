@@ -54,6 +54,7 @@ CREATE TABLE core.fact_orders_default PARTITION OF core.fact_orders DEFAULT;
 
 CREATE INDEX idx_fact_orders_id       ON core.fact_orders(order_id);
 CREATE INDEX idx_fact_orders_customer ON core.fact_orders(customer_key);
+CREATE INDEX idx_fact_orders_employee ON core.fact_orders(employee_key);
 CREATE INDEX idx_fact_orders_date     ON core.fact_orders(order_date_key);
 CREATE INDEX idx_fact_orders_status   ON core.fact_orders(status);
 CREATE INDEX idx_fact_orders_branch   ON core.fact_orders(id_branch);

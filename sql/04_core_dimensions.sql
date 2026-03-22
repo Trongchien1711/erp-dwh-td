@@ -28,6 +28,7 @@ CREATE TABLE core.dim_staff (
 );
 CREATE INDEX idx_dim_staff_id     ON core.dim_staff(staff_id);
 CREATE INDEX idx_dim_staff_branch ON core.dim_staff(id_branch);
+CREATE UNIQUE INDEX uq_dim_staff_id ON core.dim_staff(staff_id);
 
 -- --------------------------------------------
 -- dim_department
@@ -43,6 +44,7 @@ CREATE TABLE core.dim_department (
     etl_source          VARCHAR(50) DEFAULT 'tbldepartments'
 );
 CREATE INDEX idx_dim_dept_id ON core.dim_department(department_id);
+CREATE UNIQUE INDEX uq_dim_dept_id ON core.dim_department(department_id);
 
 -- --------------------------------------------
 -- dim_customer
@@ -83,6 +85,7 @@ CREATE TABLE core.dim_customer (
 );
 CREATE INDEX idx_dim_customer_id   ON core.dim_customer(customer_id);
 CREATE INDEX idx_dim_customer_code ON core.dim_customer(customer_code);
+CREATE UNIQUE INDEX uq_dim_customer_id ON core.dim_customer(customer_id);
 
 -- --------------------------------------------
 -- dim_product
@@ -124,6 +127,7 @@ CREATE INDEX idx_dim_product_id   ON core.dim_product(product_id);
 CREATE INDEX idx_dim_product_code ON core.dim_product(product_code);
 CREATE INDEX idx_dim_product_type ON core.dim_product(type_products);
 CREATE INDEX idx_dim_product_cat  ON core.dim_product(category_id);
+CREATE UNIQUE INDEX uq_dim_product_id ON core.dim_product(product_id);
 
 -- --------------------------------------------
 -- dim_price_group
@@ -155,6 +159,7 @@ CREATE TABLE core.dim_warehouse (
 );
 CREATE INDEX idx_dim_wh_id     ON core.dim_warehouse(warehouse_id);
 CREATE INDEX idx_dim_wh_branch ON core.dim_warehouse(id_branch);
+CREATE UNIQUE INDEX uq_dim_wh_id ON core.dim_warehouse(warehouse_id);
 
 -- --------------------------------------------
 -- dim_warehouse_location
@@ -211,6 +216,7 @@ CREATE TABLE core.dim_supplier (
 );
 CREATE INDEX idx_dim_sup_id   ON core.dim_supplier(supplier_id);
 CREATE INDEX idx_dim_sup_code ON core.dim_supplier(supplier_code);
+CREATE UNIQUE INDEX uq_dim_sup_id ON core.dim_supplier(supplier_id);
 
 -- --------------------------------------------
 -- dim_manufacture

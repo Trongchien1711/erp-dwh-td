@@ -19,7 +19,14 @@ def get_mysql_engine():
     database = os.getenv("MYSQL_DATABASE")
 
     url = f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}?charset=utf8mb4"
-    engine = create_engine(url, pool_pre_ping=True)
+    engine = create_engine(
+        url,
+        pool_pre_ping=True,
+        pool_recycle=3600,          # Tái tạo connection sau 1h — tránh lỗi "MySQL server has gone away"
+        pool_size=5,
+        max_overflow=2,
+        connect_args={"connect_timeout": 10},
+    )
     logger.info(f"[MySQL] Connected to {host}:{port}/{database}")
     return engine
 
@@ -32,7 +39,14 @@ def get_pg_engine():
     database = os.getenv("PG_DATABASE")
 
     url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{database}"
-    engine = create_engine(url, pool_pre_ping=True)
+    engine = create_engine(
+        url,
+        pool_pre_ping=True,
+        pool_recycle=3600,          # Tái tạo connection sau 1h
+        pool_size=5,
+        max_overflow=2,
+        connect_args={"connect_timeout": 10},
+    )
     logger.info(f"[PostgreSQL] Connected to {host}:{port}/{database}")
     return engine
 
