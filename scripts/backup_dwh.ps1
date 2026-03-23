@@ -22,7 +22,6 @@ if (-not $pgDump) {
     }
 }
 if (-not $pgDump) { Write-Error "pg_dump not found. Install PostgreSQL or add bin to PATH."; exit 1 }
-$PG_BIN     = Split-Path $pgDump -Parent
 $PGHOST     = "localhost"
 $PGPORT     = "5432"
 $PGUSER     = "dwh_admin"

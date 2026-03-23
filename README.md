@@ -515,7 +515,8 @@ Dùng cho chạy thủ công và Windows Task Scheduler (không cần Docker):
 |---|---|
 | `check_watermark.py` | Liệt kê watermark hiện tại + row count staging |
 | `check_db.py` | Inventory schema: đếm table/view/row theo từng schema |
-| `eda_mart.py` | EDA đầy đủ across 12 mart: revenue, segments, stock, P&L |
+| `eda_mart.py` | EDA đầy đủ across 14 mart: revenue, segments, stock, P&L, NPL cost |
+| `npl_validation_report.py` | Báo cáo chi tiết NPL%: distribution, suspect orders, so sánh 2025 vs mẫu |
 
 ---
 
@@ -574,7 +575,9 @@ erp-dwh-td/
 │           ├── inventory/
 │           │   ├── fct_stock_snapshot.sql         ← Tồn kho theo lô hàng
 │           │   ├── fct_inbound_outbound.sql       ← Nhập/xuất kho theo ngày
-│           │   └── fct_production_efficiency.sql  ← Kế hoạch vs thực tế sản xuất
+           |│   |├── fct_production_efficiency.sql  ← Kế hoạch vs thực tế sản xuất
+           |│   |├── fct_production_npl_cost.sql    ← Chi phí NPL từng dòng BOM (plan × material)
+           |│   |└── fct_order_npl_cost.sql         ← NPL phân bổ về đơn hàng (qty-based, BC_SP formula)
 │           ├── finance/
 │           │   ├── fct_gross_profit.sql           ← P&L: doanh thu, COGS, lợi nhuận gộp
 │           │   ├── fct_purchase_cost.sql          ← Chi phí mua hàng theo nhà cung cấp
@@ -741,6 +744,8 @@ python eda_mart.py                # EDA đầy đủ mart layer
 | `fct_stock_snapshot` | Inventory | lô tồn kho | 845,079 |
 | `fct_inbound_outbound` | Inventory | ngày × sản phẩm × kho × loại | 197,980 |
 | `fct_production_efficiency` | Inventory | lệnh SX × công đoạn | 196,146 |
+| `fct_production_npl_cost` | Inventory | plan × plan_item × vật liệu BOM | 189,466 |
+| `fct_order_npl_cost` | Inventory | 1 đơn hàng | 48,109 |
 | `fct_gross_profit` | Finance | ngày × khách hàng × chi nhánh | 13,426 |
 | `fct_purchase_cost` | Finance | ngày PO × NCC × sản phẩm | 11,835 |
 | `dim_customer_credit` | Finance | 1 khách hàng (AR) | 260 |
@@ -785,6 +790,8 @@ NULL foreign keys không thể khôi phục (do ERP thiếu liên kết gốc):
 - [x] dbt intermediate layer (`int_orders_enriched` ephemeral)
 - [x] dbt mart layer — Sales (4 models)
 - [x] dbt mart layer — Inventory (3 models)
+- [x] dbt mart layer — Inventory NPL cost (fct_production_npl_cost, fct_order_npl_cost)
+- [x] NPL allocation: quantity-based (khớp BC_SP: fixed_cost × order_qty)
 - [x] dbt mart layer — Finance (3 models)
 - [x] dbt mart layer — Shared dims (2 models)
 - [x] Health check script — 5 groups, baseline-aware thresholds

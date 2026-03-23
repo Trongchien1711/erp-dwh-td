@@ -1,7 +1,7 @@
 # ============================================================
 # run_daily.ps1
 # Chạy full pipeline hàng ngày: Extract → Load → Transform → dbt
-# 
+#
 # Cách dùng:
 #   .\scripts\run_daily.ps1               # full pipeline + dbt
 #   .\scripts\run_daily.ps1 -SkipDbt      # chỉ chạy Python pipeline
@@ -47,7 +47,7 @@ $exitCode = 0
 # ─── Step 1: Python ELT Pipeline ─────────────────────────────
 Write-Log "--- Step 1: Python ELT Pipeline ---"
 try {
-    $pipelineArgs = @("pipeline.py", "--stage", $Stage)
+    $pipelineArgs = @("$ELT_DIR\pipeline.py", "--stage", $Stage)
     $output = & $PYTHON @pipelineArgs 2>&1
     $output | ForEach-Object { Write-Log "  $_" }
     Write-Log "Step 1 PASSED" "INFO"

@@ -154,9 +154,6 @@ d:\Data Warehouse\
 ├── transform_core.py    ← SQL transform staging → core
 ├── setup.py             ← (Chạy 1 lần) GRANT quyền + ALTER schema — cần postgres
 │
-├── debug_check.py       ← Tool debug: kiểm tra TABLE_CONFIG
-├── debug_privs.py       ← Tool debug: kiểm tra quyền DB
-│
 ├── requirements.txt     ← Thư viện Python cần cài
 ├── .env                 ← Cấu hình kết nối DB (KHÔNG commit lên git)
 │
@@ -810,7 +807,7 @@ Get-Content "logs\pipeline_2026-03-20.log" -Tail 50
 ```
 ERROR: permission denied for table dim_customer
 ```
-→ User `dwh_admin` thiếu quyền. Chạy `python debug_privs.py` để kiểm tra.
+→ User `dwh_admin` thiếu quyền. Chạy lại `python setup.py` để cấp quyền (cần user postgres).
 
 ### Lỗi constraint
 

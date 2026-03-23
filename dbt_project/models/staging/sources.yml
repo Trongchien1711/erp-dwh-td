@@ -134,3 +134,29 @@ sources:
         columns:
           - name: transfer_detail_id
             tests: [not_null]
+
+  - name: staging
+    description: >
+      Raw extracted tables from the MySQL ERP source, loaded by the Python ELT
+      pipeline (elt/extractor.py + elt/loader.py). Tables are 1:1 copies of
+      the MySQL source with no transformations applied.
+    database: "{{ env_var('PG_DATABASE', 'erp_dwh') }}"
+    schema: staging
+    tables:
+      - name: tbl_productions_plan
+        description: Production plan headers. options1_id = comma-separated source sales order IDs.
+      - name: tbl_productions_plan_items
+        description: Finished products to produce in each production plan.
+      - name: tbl_productions_plan_bom
+        description: >
+          Bill of materials per plan item. item_type='materials' = NPL (raw/bought-in);
+          item_type='element' = grouped element; item_type='semi_products' = BTP.
+          quantity = total qty for the whole plan; quantity_single = qty per finished unit.
+      - name: tblpurchase_order
+        description: Purchase order headers from the ERP.
+      - name: tblpurchase_order_items
+        description: >
+          Purchase order line items. Effective unit price = total_suppliers / quantity_unit.
+          Do NOT use price_suppliers directly (may be per-lot, not per-unit).
+      - name: tblcurrencies
+        description: Currency master. amount_to_vnd = exchange rate to Vietnamese Dong.

@@ -75,7 +75,7 @@ TABLE_CONFIG = [
     },
     {
         "source_table":  "tblpurchase_order",
-        "watermark_col": "date_create",
+        "watermark_col": None,  # changed to full load for price lookup completeness (~5.9K rows)
     },
     {
         "source_table":  "tblpurchase_order_items",
@@ -103,6 +103,18 @@ TABLE_CONFIG = [
         "watermark_col": "date_active",
     },
     {
+        "source_table":  "tbl_productions_plan",
+        "watermark_col": None,  # full load (~32K rows); plan_bom/items are also full load
+    },
+    {
+        "source_table":  "tbl_productions_plan_items",
+        "watermark_col": None,  # no timestamp col → full load (~61K rows)
+    },
+    {
+        "source_table":  "tbl_productions_plan_bom",
+        "watermark_col": None,  # no timestamp col → full load (~272K rows)
+    },
+    {
         "source_table":  "tbl_manufactures",
         "watermark_col": "date",
     },
@@ -121,6 +133,10 @@ TABLE_CONFIG = [
     {
         "source_table":  "tblcustomer_groups",
         "watermark_col": None,   # bang phan cong khach hang -> nhom
+    },
+    {
+        "source_table":  "tblcurrencies",
+        "watermark_col": None,   # currency master with amount_to_vnd exchange rates
     },
 ]
 

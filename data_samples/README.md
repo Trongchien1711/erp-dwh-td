@@ -15,6 +15,9 @@ Sample CSV files for local testing and development. Each file mirrors the schema
 | `sample_suppliers.csv` | `tblsuppliers` | 7 | Supplier master records with type and payment-term columns |
 | `sample_warehouse_stock.csv` | `tblwarehouse_product` | 15 | Lot-level stock snapshot across 2 warehouses and 4 locations |
 | `sample_staff.csv` | `tblstaff` | 8 | Staff accounts with roles, branch assignment, and active status |
+| `sample_npl_order_2025.csv` | `mart.fct_order_npl_cost` | ~190 | 2025 orders with allocated NPL cost, NPL%, and quality flag (qty-based allocation) |
+| `sample_npl_bom_detail_2025.csv` | `mart.fct_production_npl_cost` | ~1,000 | 2025 BOM cost detail per plan × material line — used for NPL model validation |
+| `top20_npl_product_2025.csv` | `mart.fct_order_npl_cost` | 20 | Top-20 finished products by total allocated NPL cost in 2025 |
 
 ---
 

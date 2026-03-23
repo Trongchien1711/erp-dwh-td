@@ -29,3 +29,28 @@ dbt_project/profiles.yml   # real credentials — use profiles.yml.example
 !.vscode/extensions.json
 .idea/
 *.code-workspace
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+.venv_dbt/
+
+# Environment
+.env
+!.env.example
+
+# Logs
+logs/
+elt/logs/
+
+# dbt generated output
+dbt_project/target/
+dbt_project/logs/
+dbt_project/dbt_packages/
+dbt_project/dbt_internal_packages/
+
+# OS
+.DS_Store
+Thumbs.db

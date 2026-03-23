@@ -46,6 +46,153 @@ models:
           qty_produced / total_hours (labour productivity).
           Always NULL because total_hours = 0 in ERP.
 
+  - name: fct_production_npl_cost
+    description: >
+      NPL (nguyên phụ liệu) cost per production plan BOM line.
+      Grain: one row per (production_plan × plan_item × BOM material).
+      Source: tbl_productions_plan_bom (actual BOM, not production order items).
+      Uses the most recent purchase price per NPL product from tblpurchase_order history.
+      Waste multiplier (bù hao) applied when dim_product.loss = 1 (default 5%).
+      Aggregate by productions_plan_id to get total NPL cost per plan.
+
+      Revenue linkage: source_order_ids (comma-separated) = tbl_orders.id values.
+      NPL/Revenue benchmark for 2024 full-coverage plans: ~23-32%.
+
+      Coverage note:
+        ~98% of filtered BOM rows have a purchase price from PO history.
+        material_matched=True means npl_product_id exists in current dim_product;
+        material_matched=False means the product was discontinued/renamed.
+    config:
+      tags: ["inventory", "production", "npl", "cost"]
+    columns:
+      - name: bom_line_id
+        description: >
+          Natural key from tbl_productions_plan_bom.id.
+          NULL for auto-injected zinc (Kem) rows — these have no real BOM line id.
+        tests: [unique]
+      - name: productions_plan_id
+        description: Production plan header ID — group by this for plan-level NPL cost
+      - name: productions_plan_items_id
+        description: Plan item ID — one per finished product variant in the plan
+      - name: finished_product_id
+        description: Product ID of the finished product being manufactured
+      - name: finished_qty_planned
+        description: Planned quantity of finished product (quantity_total_details)
+      - name: source_order_ids
+        description: Comma-separated sales order IDs linked to this production plan
+      - name: plan_status
+        description: Plan status from ERP (approved, un_approved, etc.)
+      - name: npl_product_id
+        description: Product ID of the NPL material (from tbl_productions_plan_bom.item_id)
+      - name: npl_code
+        description: NPL item code as recorded in BOM at plan creation time
+      - name: npl_name
+        description: NPL item name as recorded in BOM at plan creation time
+      - name: unit_id
+        description: Unit of measure ID for the NPL material
+      - name: material_matched
+        description: True if npl_product_id currently exists in dim_product master
+      - name: product_master_name
+        description: Current product name in dim_product (may differ from npl_name if product was renamed)
+      - name: has_loss_flag
+        description: dim_product.loss — 1 = waste factor applied, 0 = no waste
+      - name: qty_bom
+        description: Total planned NPL quantity for the whole plan (not per unit)
+      - name: qty_per_unit
+        description: NPL quantity per one finished product unit (quantity_single)
+      - name: unit_price_vnd
+        description: Most recent effective unit price in VND (total_suppliers / quantity_unit from latest PO)
+      - name: last_po_date
+        description: Date of the most recent PO line used for unit_price_vnd
+      - name: has_price
+        description: True if a purchase price exists for this NPL product in PO history
+      - name: npl_cost_vnd
+        description: qty_bom × unit_price_vnd — estimated NPL cost in VND (no waste)
+      - name: npl_cost_with_waste_vnd
+        description: npl_cost_vnd × waste_multiplier — NPL cost including expected material loss
+      - name: waste_cost_vnd
+        description: npl_cost_with_waste_vnd − npl_cost_vnd (cost added by waste factor)
+      - name: waste_multiplier
+        description: "1.0 + buhao_rate if has_loss_flag=1, else 1.0 (default: 1.05)"
+      - name: buhao_rate_pct
+        description: Waste rate percentage used in this run (default 5.0)
+
+  - name: fct_order_npl_cost
+    description: >
+      NPL cost allocated to each customer order.
+      Grain: 1 row per order_id.
+
+      A production plan can serve multiple orders (source_order_ids is
+      comma-separated). NPL is split proportionally by ORDER QUANTITY for
+      the specific finished product — matching BC_SP formula exactly:
+        alloc_ratio   = order_product_qty / SUM(order_product_qty for all orders in plan)
+        allocated_npl = plan_npl * alloc_ratio
+
+      Fallback chain when qty not available:
+        1. Revenue share  (order_revenue / plan_total_revenue)
+        2. Equal split    (1 / plan_order_count)
+
+      Revenue is converted to VND (USD*26202, CZK*27, VND as-is).
+      Rows where is_cancel=1 in fact_orders are excluded.
+
+      npl_quality flag:
+        'normal'       allocated_npl_pct <= 150%  (typical range)
+        'high_cost'    150% < pct <= 500%          (specialty products / small orders)
+        'suspect_data' pct > 500%                  (likely BOM data entry issue)
+        'no_revenue'   revenue_vnd is null or zero
+
+      is_sample_order: true when total_quantity < 500 OR revenue < 2,000,000 VND.
+    config:
+      tags: ["inventory", "production", "npl", "cost", "order"]
+    columns:
+      - name: order_id
+        description: Sales order natural key (tbl_orders.id)
+        tests: [not_null, unique]
+      - name: order_reference_no
+        description: Human-readable order reference (DDH-YYMMDD...)
+      - name: order_date
+        description: Order creation date
+      - name: year
+        description: Order year (integer)
+      - name: month
+        description: Order month (integer)
+      - name: quarter
+        description: Order quarter (integer)
+      - name: currencies
+        description: "Currency code from ERP: 1=USD, 4=CZK, 5=VND"
+      - name: grand_total_original
+        description: Original grand_total in source currency (before VND conversion)
+      - name: revenue_vnd
+        description: Order grand_total converted to VND
+      - name: total_quantity
+        description: Total ordered quantity (units)
+      - name: status
+        description: Order status code from ERP (6/7 = cancelled/rejected)
+      - name: status_payment
+        description: Payment status code from ERP
+      - name: is_end
+        description: "1 = order closed/finished, 0 = open"
+      - name: linked_plan_count
+        description: Number of production plans contributing NPL to this order
+      - name: total_bom_items
+        description: Sum of BOM line count across all linked plans
+      - name: total_items_without_price
+        description: BOM lines for which no PO purchase price was found
+      - name: allocated_npl_materials_vnd
+        description: NPL materials cost allocated to this order (no waste)
+      - name: allocated_npl_waste_vnd
+        description: Waste (bu hao) cost allocated to this order
+      - name: allocated_npl_total_vnd
+        description: Total NPL + waste cost allocated to this order
+      - name: npl_materials_pct
+        description: "allocated_npl_materials_vnd / revenue_vnd * 100"
+      - name: npl_total_pct
+        description: "allocated_npl_total_vnd / revenue_vnd * 100"
+      - name: npl_quality
+        description: "'normal' | 'high_cost' | 'suspect_data' | 'no_revenue'"
+      - name: is_sample_order
+        description: True if order has qty < 500 or revenue < 2M VND
+
   - name: fct_stock_snapshot
     description: >
       Current stock levels by product, warehouse, and lot.

@@ -18,6 +18,9 @@ Domain Inventory theo dõi hàng tồn kho, nhập xuất kho, sản xuất.
 | `tbl_productions_orders_items` | Chi tiết sản xuất | Full load |
 | `tbl_productions_orders_items_stages` | Công đoạn sx | Incremental (date_active) |
 | `tbl_manufactures` | Đơn vị sản xuất | Incremental (date) |
+| `tbl_productions_plan` | Kế hoạch sản xuất (lệnh plan) | Full load |
+| `tbl_productions_plan_items` | Chi tiết kế hoạch SX (sản phẩm) | Full load |
+| `tbl_productions_plan_bom` | BOM thực tế của kế hoạch SX | Full load |
 
 ## Core Tables
 
@@ -52,5 +55,30 @@ Domain Inventory theo dõi hàng tồn kho, nhập xuất kho, sản xuất.
 - `fact_warehouse_stock.location_key`: đã backfill đầy đủ (845,078 rows, commit e4ec364)
 
 ## dbt Mart Target
-`mart.inventory` — models: `fct_stock_snapshot`, `fct_inbound_outbound`, `fct_production_efficiency`
+`mart.inventory` — models:
+
+| Model | Grain | Rows (~) | Mô tả |
+|-------|-------|----------|--------|
+| `fct_stock_snapshot` | lô hàng × kho | 845,079 | Tồn kho chi tiết theo lô |
+| `fct_inbound_outbound` | ngày × SP × kho × loại | 197,980 | Luồng nhập/xuất kho |
+| `fct_production_efficiency` | lệnh SX × ngày công đoạn | 196,146 | KH vs thực tế sản xuất |
+| `fct_production_npl_cost` | plan × plan_item × vật liệu BOM | 189,466 | Chi phí NPL từng dòng BOM. Giá = PO gần nhất. Waste multiplier 5%. |
+| `fct_order_npl_cost` | 1 đơn hàng | 48,109 | NPL cost phân bổ về đơn hàng theo số lượng (BC_SP formula). Weighted NPL%  ~27% (2025). |
+
+## NPL Cost Logic
+
+Phân bổ chi phí NPL (nguyên phụ liệu) về từng đơn hàng:
+
+```
+fct_production_npl_cost  →  plan BOM cost per material line
+                                 │
+                                 ▼
+fct_order_npl_cost       ←  phân bổ theo tỉ lệ số lượng:
+  alloc_ratio = order_product_qty / SUM(order_product_qty trong plan)
+  (Fallback: revenue share → equal split)
+```
+
+Khớp với công thức BC_SP: `variable_cost = (1/N) × conversion_value × price × order_qty`
+
+Data quality flags: `normal` (≤150%) / `high_cost` (150-500%) / `suspect_data` (>500%) / `no_revenue`
 

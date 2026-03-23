@@ -155,10 +155,15 @@ print("4. MART MODEL ROW COUNTS")
 print(SEP)
 
 MART_TABLES = [
+    # Sales
     "fct_revenue", "fct_order_items_detail", "fct_order_performance",
     "dim_customer_segmentation",
+    # Finance
     "fct_gross_profit", "fct_purchase_cost", "dim_customer_credit",
+    # Inventory
     "fct_stock_snapshot", "fct_inbound_outbound", "fct_production_efficiency",
+    "fct_production_npl_cost", "fct_order_npl_cost",
+    # Shared
     "dim_customer_mart", "dim_product_mart",
 ]
 
@@ -169,6 +174,10 @@ for tbl in MART_TABLES:
         msg = f"mart.{tbl:<35} {n:>10,} rows"
         if n == 0:
             warn(msg + "  [EMPTY — dbt run may not have run]")
+        elif tbl == "fct_production_npl_cost" and n < 100_000:
+            warn(msg + "  [LOW — expected ~189,000+ rows]")
+        elif tbl == "fct_order_npl_cost" and n < 10_000:
+            warn(msg + "  [LOW — expected ~48,000+ rows]")
         else:
             ok(msg)
     except Exception as e:
