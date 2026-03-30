@@ -84,8 +84,27 @@ final as (
         s.product_quantity_unit_export,
 
         -- ── value ──────────────────────────────────────────────
-        s.price,                                            -- import price per unit
-        s.quantity_left * s.price                          as stock_value,
+        -- NOTE: s.price is the TOTAL lot import price (tong tien lo nhap), not
+        --       unit price. Unit price = price / quantity.
+        --       Non-3D products are capped at 50,000 VND/unit per business rule.
+        s.price                                            as lot_price,
+        round(
+            s.price / nullif(s.quantity, 0), 2
+        )                                                  as unit_price,
+        round(
+            case
+                when p.product_code like '3D%'
+                    then s.price / nullif(s.quantity, 0)
+                else least(s.price / nullif(s.quantity, 0), 50000)
+            end, 2
+        )                                                  as unit_price_capped,
+        round(
+            s.quantity_left * case
+                when p.product_code like '3D%'
+                    then s.price / nullif(s.quantity, 0)
+                else least(s.price / nullif(s.quantity, 0), 50000)
+            end, 2
+        )                                                  as stock_value,
 
         -- ── import date reference ──────────────────────────────
         s.import_date_key,

@@ -1,0 +1,126 @@
+\documentclass[letterpaper,11pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage{tabularx}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\addtolength{\oddsidemargin}{-0.6in}
+\addtolength{\textwidth}{1.19in}
+\addtolength{\topmargin}{-.7in}
+\addtolength{\textheight}{1.4in}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+\titleformat{\section}{
+  \scshape\large\bfseries
+}{}{0em}{}[\titlerule]
+
+\setlist[itemize]{noitemsep, topsep=2pt}
+
+\newcommand{\resumeItem}[1]{
+  \item #1
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{2pt}
+  \begin{tabular*}{\textwidth}{l@{\extracolsep{\fill}}r}
+    \textbf{#1} & #2 \\
+    \textit{#3} & \textit{#4}
+  \end{tabular*}
+}
+
+\begin{document}
+
+%================ HEADER =================
+\begin{center}
+  {\Huge \textbf{Nguyen Trong Chien}} \\[4pt]
+  Ho Chi Minh City, Vietnam \\[2pt]
+  +84 903 083 107 \quad | \quad
+  \href{mailto:trongchien1711@gmail.com}{trongchien1711@gmail.com} \quad | \quad
+  \href{https://linkedin.com/in/trongchien1711}{linkedin.com/in/trongchien1711} \quad | \quad
+  \href{https://github.com/Trongchien1711}{github.com/Trongchien1711}
+\end{center}
+
+%================ SUMMARY =================
+\section{Summary}
+Data Analyst specializing in Analytics Engineering and Business Intelligence. Experienced in building automated data solutions, from orchestrating Python-based ELT pipelines to designing robust Data Warehouses (Star Schema, dbt). Proven track record in saving **85\% of reporting time** and delivering strategic recommendations for BOD regarding customer retention, inventory optimization, and cost control.
+
+%================ EXPERIENCE =================
+\section{Experience}
+
+\resumeSubheading
+{Business Data Analyst $|$ Assistant to BOD}{Oct 2025 -- Present}
+{ERP Data \& Business Analytics}{Ho Chi Minh City}
+
+\begin{itemize}
+  \resumeItem{Engineered a complete Data Warehouse from ERP source (MySQL), implementing an automated ELT pipeline that **reduced reporting lead time by 85\%** (from 4 hours to 15 minutes daily).}
+  \resumeItem{Performed \textbf{ABC/Pareto Analysis} on customer profiles, identifying that 5 key accounts (Class A) contribute $\sim$80\% of revenue, enabling targeted churn prevention strategies.}
+  \resumeItem{Conducted \textbf{Inventory Health Audits}, identifying a slow turnover rate (0.6--0.83) and $\sim$20B VND in Work-in-Progress (WIP) overhead; proposed Lean-based optimizations to reduce waste.}
+  \resumeItem{Standardized \textbf{Bill of Materials (BOM)} for 14+ product categories, improving cost transparency and enabling precise margin tracking per order line.}
+  \resumeItem{Automated daily data refresh and health monitoring using \textbf{Python and PowerShell}, ensuring 100\% data freshness for daily BOD reviews.}
+  \resumeItem{Developed \textbf{Power BI Executive Dashboards}, visualizing YoY growth, RFM segments, and production efficiency KPIs.}
+\end{itemize}
+
+\resumeSubheading
+{Sales Representative}{Sep 2022 -- Jun 2025}
+{Hoa Sen Vietnam Food Processing JSC}{Ho Chi Minh City}
+
+\begin{itemize}
+  \resumeItem{Managed territory sales performance, consistently meeting revenue targets through data-informed area planning.}
+  \resumeItem{Optimized weekly sales reporting by leveraging Excel and basic SQL to identify emerging trends and high-potential customer cohorts.}
+\end{itemize}
+
+%================ PROJECTS =================
+\section{Projects}
+
+\resumeSubheading
+{End-to-End ERP Data Warehouse (erp-dwh-td)}{2026}
+{Python $\cdot$ dbt $\cdot$ SQL $\cdot$ PostgreSQL $\cdot$ Star Schema}{Portfolio Project}
+
+\begin{itemize}
+  \resumeItem{Built a production-grade ELT pipeline: utilized \textbf{PostgreSQL COPY protocol} for 17x faster bulk loads and \textbf{Watermark logic} for efficient incremental updates from MySQL ERP.}
+  \resumeItem{Designed a \textbf{Star Schema} with 10 dimensions and 9 fact tables, including yearly partitioning to optimize query performance on large datasets.}
+  \resumeItem{Modularized transformations using \textbf{dbt} (Staging, Intermediate, Mart layers), ensuring data quality through automated schema and relationship testing.}
+  \resumeItem{Automated the entire workflow with integrated scripts, ensuring consistency from extraction to final BI table delivery.}
+  \resumeItem{GitHub: \href{https://github.com/Trongchien1711/erp-dwh-td}{github.com/Trongchien1711/erp-dwh-td}}
+\end{itemize}
+
+%================ EDUCATION =================
+\section{Education}
+
+\resumeSubheading
+{University of Finance and Marketing}{2021}
+{Bachelor of Business Administration}{Ho Chi Minh City}
+
+%================ SKILLS =================
+\section{Technical Skills}
+
+\begin{itemize}
+  \item \textbf{Data Analytics:} Python (Pandas, NumPy, EDA), SQL (CTE, Window Functions, Optimization), RFM Analysis
+  \item \textbf{Analytics Engineering:} dbt (Core, Mart design), Data Modeling (Kimball/Star Schema), SCD Type 1
+  \item \textbf{Data Engineering:} ELT/ETL Pipelines, CDC/Watermark Logic, PowerShell Automation, PostgreSQL 18
+  \item \textbf{Business Intelligence:} Power BI (DAX, Modeling), Advanced Excel (Pivot, Power Query)
+  \item \textbf{Workflow:} Git/GitHub, Windows Automation, operational monitoring
+\end{itemize}
+
+%================ CERTIFICATIONS =================
+\section{Certifications}
+
+\begin{itemize}
+  \item IBM Data Analyst Professional Certificate -- Coursera (2025)
+  \item HackerRank SQL (Advanced) Certificate (2025)
+\end{itemize}
+
+\end{document}

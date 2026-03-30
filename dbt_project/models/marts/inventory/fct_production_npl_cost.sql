@@ -290,6 +290,25 @@ select
     e.is_zinc,
     e.is_zinc_injected,     -- TRUE = Kem row auto-injected (BOM had no zinc line)
 
+    -- Paper (Giay cac Loai) material flag
+    -- Identifies all NPL rows belonging to the ERP "Giay cac Loai" category:
+    -- raw paper sheet inputs for production (Bristol, Couche, Duplex, Ivory,
+    -- For, Kraft, My Thuat...) plus paper-backed adhesives and paper ribbon.
+    -- Also captures obsolete paper items the ERP marks "(khong su dung)" --
+    -- those are paper grades no longer active in production plans but still
+    -- appear in older BOMs (sourced from Khai Hoan, Nhan Dung, etc.).
+    case
+        -- Active raw paper grades: name begins with "Giay" (sheet paper)
+        when e.npl_name ilike 'Gi%y %'              then true
+        -- Obsolete / not-used paper items flagged by ERP as "(khong su dung)"
+        when e.npl_name ilike '%(kh%ng%d%ng)Gi%y%'  then true
+        -- Decal Giay: paper-backed self-adhesive decal material
+        when e.npl_name ilike 'Decal Gi%y%'         then true
+        -- Day Bang Giay: paper ribbon material
+        when e.npl_name ilike 'D%y B%ng Gi%y%'      then true
+        else false
+    end                                                    as is_giay,
+
     -- Quantities
     -- qty_single    : quantity_single from BOM (NPL qty per 1 kho giay / run unit)
     -- number_children_size : so SP tren 1 kho giay (N in formula)

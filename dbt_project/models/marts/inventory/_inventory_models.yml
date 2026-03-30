@@ -207,7 +207,15 @@ models:
       - name: quantity_exported
         description: Units issued from this lot
       - name: stock_value
-        description: "quantity_left × price (valued at import cost)"
+        description: >
+          quantity_left x unit_price_capped. unit_price = lot_price / quantity (lot total / original qty).
+          Non-3D products capped at 50,000 VND/unit per business rule.
+      - name: lot_price
+        description: Total import price of the original lot (tong tien lo nhap), as stored in ERP.
+      - name: unit_price
+        description: Derived unit price = lot_price / quantity. May exceed 50,000 for bad ERP data.
+      - name: unit_price_capped
+        description: unit_price capped at 50,000 VND for non-3D products. Used for stock_value.
       - name: lot_code
         description: Lot / batch traceability code
       - name: date_sd
