@@ -19,7 +19,8 @@ from pathlib import Path
 import psycopg2
 from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).parent / ".env")
+_project_root = Path(__file__).resolve().parent.parent.parent
+load_dotenv(_project_root / ".env")
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--strict", action="store_true",

@@ -55,7 +55,7 @@
 
 %================ SUMMARY =================
 \section{Summary}
-Data Analyst specializing in Analytics Engineering and Business Intelligence. Experienced in building automated data solutions, from orchestrating Python-based ELT pipelines to designing robust Data Warehouses (Star Schema, dbt). Proven track record in saving **85\% of reporting time** and delivering strategic recommendations for BOD regarding customer retention, inventory optimization, and cost control.
+Data Analyst with a strong business background, specializing in transforming raw data into actionable insights. Proven track record in \textbf{automating manual reporting workflows}, reducing daily tasks by \textbf{85\%} and ensuring high data accuracy for executive decision-making. Skilled in building comprehensive data models (SQL, dbt) and interactive dashboards (Power BI) to support strategic planning in customer retention, inventory optimization, and cost control.
 
 %================ EXPERIENCE =================
 \section{Experience}
@@ -65,12 +65,13 @@ Data Analyst specializing in Analytics Engineering and Business Intelligence. Ex
 {ERP Data \& Business Analytics}{Ho Chi Minh City}
 
 \begin{itemize}
-  \resumeItem{Engineered a complete Data Warehouse from ERP source (MySQL), implementing an automated ELT pipeline that **reduced reporting lead time by 85\%** (from 4 hours to 15 minutes daily).}
-  \resumeItem{Performed \textbf{ABC/Pareto Analysis} on customer profiles, identifying that 5 key accounts (Class A) contribute $\sim$80\% of revenue, enabling targeted churn prevention strategies.}
-  \resumeItem{Conducted \textbf{Inventory Health Audits}, identifying a slow turnover rate (0.6--0.83) and $\sim$20B VND in Work-in-Progress (WIP) overhead; proposed Lean-based optimizations to reduce waste.}
-  \resumeItem{Standardized \textbf{Bill of Materials (BOM)} for 14+ product categories, improving cost transparency and enabling precise margin tracking per order line.}
-  \resumeItem{Automated daily data refresh and health monitoring using \textbf{Python and PowerShell}, ensuring 100\% data freshness for daily BOD reviews.}
-  \resumeItem{Developed \textbf{Power BI Executive Dashboards}, visualizing YoY growth, RFM segments, and production efficiency KPIs.}
+  \resumeItem{Developed and automated a reporting system from ERP source (MySQL), implementing an ELT pipeline that \textbf{reduced daily reporting time by 85\%} (from 4 hours to 15 minutes).}
+  \resumeItem{Implemented data validation scripts using Python to track row counts and data freshness, ensuring high-quality metrics for executive reporting.}
+  \resumeItem{Designed a comprehensive Data Model with 9 fact tables covering Sales, Inventory, and Costs to provide a single source of truth for the company.}
+  \resumeItem{Built an \textbf{NPL (Raw Material) Cost Allocation Model} to distribute material costs across 48,000+ order lines, enabling precise margin tracking per category.}
+  \resumeItem{Performed \textbf{ABC/Pareto Analysis} on customer profiles, identifying key accounts contributing 80\% of revenue and proposing churn prevention strategies.}
+  \resumeItem{Conducted \textbf{Inventory Health Audits}, identifying $\sim$20B VND in Work-in-Progress (WIP) overhead and proposing Lean-based optimizations.}
+  \resumeItem{Created \textbf{Power BI Dashboards} to visualize YoY growth and production efficiency KPIs for BOD strategic alignment.}
 \end{itemize}
 
 \resumeSubheading
@@ -86,15 +87,14 @@ Data Analyst specializing in Analytics Engineering and Business Intelligence. Ex
 \section{Projects}
 
 \resumeSubheading
-{End-to-End ERP Data Warehouse (erp-dwh-td)}{2026}
-{Python $\cdot$ dbt $\cdot$ SQL $\cdot$ PostgreSQL $\cdot$ Star Schema}{Portfolio Project}
+{ERP Data Reporting Pipeline (Portfolio Project)}{2026}
+{SQL $\cdot$ dbt $\cdot$ PostgreSQL $\cdot$ Python}{\href{https://github.com/Trongchien1711/erp-dwh-td}{github.com/Trongchien1711/erp-dwh-td}}
 
 \begin{itemize}
-  \resumeItem{Built a production-grade ELT pipeline: utilized \textbf{PostgreSQL COPY protocol} for 17x faster bulk loads and \textbf{Watermark logic} for efficient incremental updates from MySQL ERP.}
-  \resumeItem{Designed a \textbf{Star Schema} with 10 dimensions and 9 fact tables, including yearly partitioning to optimize query performance on large datasets.}
-  \resumeItem{Modularized transformations using \textbf{dbt} (Staging, Intermediate, Mart layers), ensuring data quality through automated schema and relationship testing.}
-  \resumeItem{Automated the entire workflow with integrated scripts, ensuring consistency from extraction to final BI table delivery.}
-  \resumeItem{GitHub: \href{https://github.com/Trongchien1711/erp-dwh-td}{github.com/Trongchien1711/erp-dwh-td}}
+  \resumeItem{Developed an automated ELT pipeline: utilized \textbf{Watermark logic} for efficient incremental updates from MySQL ERP to PostgreSQL.}
+  \resumeItem{Designed a \textbf{Star Schema} model with 9 fact tables and 10 dimensions, covering Sales, Raw Material Costs, and Inventory Health.}
+  \resumeItem{Applied \textbf{dbt} for modular data transformation, organizing logic into Staging and Mart layers for maintainability.}
+  \resumeItem{Implemented \textbf{Data Quality Tests} using dbt and Python to ensure referential integrity and data freshness.}
 \end{itemize}
 
 %================ EDUCATION =================
@@ -108,11 +108,11 @@ Data Analyst specializing in Analytics Engineering and Business Intelligence. Ex
 \section{Technical Skills}
 
 \begin{itemize}
-  \item \textbf{Data Analytics:} Python (Pandas, NumPy, EDA), SQL (CTE, Window Functions, Optimization), RFM Analysis
-  \item \textbf{Analytics Engineering:} dbt (Core, Mart design), Data Modeling (Kimball/Star Schema), SCD Type 1
-  \item \textbf{Data Engineering:} ELT/ETL Pipelines, CDC/Watermark Logic, PowerShell Automation, PostgreSQL 18
-  \item \textbf{Business Intelligence:} Power BI (DAX, Modeling), Advanced Excel (Pivot, Power Query)
-  \item \textbf{Workflow:} Git/GitHub, Windows Automation, operational monitoring
+  \item \textbf{Data Analytics:} SQL (CTE, Window Functions, Joins), Business Intelligence, ABC/Pareto Analysis
+  \item \textbf{Data Modeling:} Star Schema
+  \item \textbf{Tools \& Visualization:} Power BI (DAX, Modeling), Advanced Excel (Power Query, Pivot)
+  \item \textbf{Data Transformation:} dbt (Applied usage), Python (Pandas for ELT/EDA)
+  \item \textbf{Workflow:} Git/GitHub
 \end{itemize}
 
 %================ CERTIFICATIONS =================

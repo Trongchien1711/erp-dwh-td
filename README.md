@@ -88,4 +88,4 @@ erp-dwh-td/
 ## 6. Liên hệ
 **Nguyễn Trọng Chiến**  
 Email: trongchien1711@gmail.com  
-GitHub: [Trongchien1711](https://github.com/Trongchien1711)
+GitHub Repo: [erp-dwh-td](https://github.com/Trongchien1711/erp-dwh-td)

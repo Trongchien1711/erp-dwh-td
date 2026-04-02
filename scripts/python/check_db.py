@@ -4,7 +4,9 @@ from pathlib import Path
 import psycopg2
 from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).parent / ".env")
+# .env lives at the project root (2 levels up from scripts/python/)
+_project_root = Path(__file__).resolve().parent.parent.parent
+load_dotenv(_project_root / ".env")
 
 conn = psycopg2.connect(
     host=os.getenv("PG_HOST", "localhost"),
