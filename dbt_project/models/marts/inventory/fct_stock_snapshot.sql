@@ -9,6 +9,11 @@
 --   quantity_left       — remaining units in stock
 --   quantity_exported   — units consumed / issued
 --   lot_code            — traceability identifier (expiry dates)
+--
+-- Price logic (unit_price):
+--   1. lot_price / quantity from fact_warehouse_stock (when populated)
+--   2. Fallback: latest price_suppliers from fact_purchase_order_items
+--      (ERP does not consistently populate lot import price in tblwarehouse_product)
 -- ============================================================
 
 with stock as (
@@ -43,6 +48,24 @@ warehouses as (
         id_branch
 
     from {{ ref('stg_warehouses') }}
+
+),
+
+-- Latest purchase order price per product (fallback when lot price missing)
+-- NOTE: fact_purchase_order_items contains ONLY outsourced finished goods
+-- (products / semi_products purchased from external suppliers).
+-- Raw materials (NPL) are NOT in this table — their receipt prices are
+-- not recorded in the ERP source (tbl_purchase_products.price = 0).
+-- po_fallback is therefore only valid for products/semi_products that were
+-- legitimately purchased externally AND lack a lot-level price.
+latest_po_price as (
+
+    select distinct on (product_key)
+        product_key,
+        price_suppliers as po_unit_price
+    from {{ source('core', 'fact_purchase_order_items') }}
+    where price_suppliers > 0
+    order by product_key, po_date_key desc
 
 ),
 
@@ -84,27 +107,84 @@ final as (
         s.product_quantity_unit_export,
 
         -- ── value ──────────────────────────────────────────────
-        -- NOTE: s.price is the TOTAL lot import price (tong tien lo nhap), not
-        --       unit price. Unit price = price / quantity.
-        --       Non-3D products are capped at 50,000 VND/unit per business rule.
+        -- lot_price: total lot import price from warehouse stock (tong tien lo nhap)
+        -- unit_price: lot_price / quantity; fallback to latest PO price if missing
+        -- unit_price_capped: non-3D products capped at 50,000 VND/unit
         s.price                                            as lot_price,
+
+        -- price source flag for transparency
+        case
+            when s.price > 0 then 'lot_price'
+            when po.po_unit_price is not null then 'po_fallback'
+            else 'no_price'
+        end                                                as price_source,
+
         round(
-            s.price / nullif(s.quantity, 0), 2
+            coalesce(
+                nullif(s.price / nullif(s.quantity, 0), 0),
+                po.po_unit_price
+            ), 2
         )                                                  as unit_price,
+
+        -- unit_price_capped: cap non-3D at 50,000 VND; NULL stays NULL (not capped)
+        -- NOTE: PostgreSQL LEAST(NULL, n) = n, so must guard with CASE
         round(
             case
+                when coalesce(
+                        nullif(s.price / nullif(s.quantity, 0), 0),
+                        po.po_unit_price
+                     ) is null then null
                 when p.product_code like '3D%'
-                    then s.price / nullif(s.quantity, 0)
-                else least(s.price / nullif(s.quantity, 0), 50000)
+                    then coalesce(
+                            nullif(s.price / nullif(s.quantity, 0), 0),
+                            po.po_unit_price
+                         )
+                else least(
+                        coalesce(
+                            nullif(s.price / nullif(s.quantity, 0), 0),
+                            po.po_unit_price
+                        ), 50000
+                     )
             end, 2
         )                                                  as unit_price_capped,
+
         round(
             s.quantity_left * case
+                when coalesce(
+                        nullif(s.price / nullif(s.quantity, 0), 0),
+                        po.po_unit_price
+                     ) is null then null
                 when p.product_code like '3D%'
-                    then s.price / nullif(s.quantity, 0)
-                else least(s.price / nullif(s.quantity, 0), 50000)
+                    then coalesce(
+                            nullif(s.price / nullif(s.quantity, 0), 0),
+                            po.po_unit_price
+                         )
+                else least(
+                        coalesce(
+                            nullif(s.price / nullif(s.quantity, 0), 0),
+                            po.po_unit_price
+                        ), 50000
+                     )
             end, 2
         )                                                  as stock_value,
+
+        -- ── valuation quality flags for PBI filtering ─────────
+        -- is_valued: TRUE only when price comes from actual lot receipt
+        -- value_note: explains why stock_value may be NULL or estimated
+        case
+            when s.price > 0 then true
+            else false
+        end                                                as is_valued,
+
+        case
+            when s.price > 0
+                then 'lot_price'
+            when po.po_unit_price is not null and p.type_products in ('products', 'semi_products')
+                then 'po_fallback_outsourced'
+            when po.po_unit_price is not null
+                then 'po_fallback_material'
+            else 'unpriced_no_eln_receipt'
+        end                                                as value_note,
 
         -- ── import date reference ──────────────────────────────
         s.import_date_key,
@@ -119,8 +199,9 @@ final as (
         s.etl_loaded_at
 
     from stock s
-    left join products  p using (product_key)
-    left join warehouses w using (warehouse_key)
+    left join products      p   using (product_key)
+    left join warehouses    w   using (warehouse_key)
+    left join latest_po_price po using (product_key)
 
 )
 

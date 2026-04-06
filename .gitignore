@@ -45,6 +45,13 @@ __pycache__/
 logs/
 elt/logs/
 
+# Backups
+backups/
+*.dump
+
+# Local data publishing helpers
+sql/09_anonymize_data.sql
+
 # dbt generated output
 dbt_project/target/
 dbt_project/logs/

@@ -20,28 +20,32 @@ Dự án này không chỉ là một pipeline kỹ thuật mà là một giải 
 ## 2. Luồng dữ liệu (Data Flow)
 
 ```
-MySQL (ERP Source) 
+MySQL (ERP Source)
         │
-        │  [Python ELT] 
-        │  - Trích xuất tăng trưởng (Watermark logic)
-        │  - Tải nhanh (PostgreSQL COPY - nhanh hơn 17 lần INSERT)
+        │  [Python ELT: extractor.py + loader.py + watermark.py]
+        │  - Trích xuất incremental / full load
+        │  - Tải nhanh bằng PostgreSQL COPY
         ▼
-PostgreSQL (Staging Layer)
+PostgreSQL (schema: staging)
         │
-        │  [SQL Transformation]
-        │  - Chuẩn hóa Star Schema (Kimball Methodology)
-        │  - Phân vùng dữ liệu (Partitioning theo năm)
+        │  [Python transform_core.py]
+        │  - Chuẩn hóa dữ liệu thành dimension / fact nền tảng
+        │  - Gán surrogate key và upsert vào warehouse core
         ▼
-PostgreSQL (Core & Mart Layers)
+PostgreSQL (schema: core)
         │
-        │  [dbt - Analytics Engineering]
-        │  - Xây dựng 12+ Mart Models (Sales, Inventory, Finance)
-        │  - Kiểm soát chất lượng (Automated Data Testing)
+        │  [dbt: stg_* -> int_* -> mart]
+        │  - Semantic cleanup, reusable joins, business marts
+        │  - Automated tests, docs, lineage
         ▼
-Power BI / Desktop EDA
+PostgreSQL (schema: mart)
         │
-        │  - Dashboard theo dõi KPI & Business Insights
+        │  - Bảng sẵn sàng cho KPI, dashboard, phân tích
+        ▼
+Power BI / Desktop EDA / Reporting
 ```
+
+Lưu ý: `staging` trong PostgreSQL là lớp raw ingest từ ERP, còn `stg_*` trong dbt là lớp semantic cleanup trên top của `core`, không phải cùng một tầng.
 
 ---
 
@@ -59,12 +63,13 @@ Power BI / Desktop EDA
 ```
 erp-dwh-td/
 ├── elt/                # Python scripts trích xuất & tải dữ liệu
-├── dbt_project/        # dbt models (Logic biến đổi dữ liệu chính)
-├── sql/                # Scripts khởi tạo Database & Star Schema
-├── scripts/            # Script tự động hóa vận hành 
-├── docs/               # Tài liệu nghiệp vụ & định nghĩa KPI
-├── check_pipeline_health.py # Kiểm tra sức khỏe dữ liệu tự động
-└── eda_mart.py         # Phân tích khám phá (EDA) tầng Mart
+├── dbt_project/        # dbt models: staging, intermediate, mart
+├── sql/                # Scripts khởi tạo database và warehouse schema
+├── scripts/            # PowerShell orchestration và tiện ích vận hành
+├── scripts/python/     # Script kiểm tra, health check, EDA, validation
+├── docs/               # Tài liệu nghiệp vụ và định nghĩa KPI
+├── diagrams/           # Sơ đồ lineage, kiến trúc, star schema
+└── data_samples/       # Mẫu dữ liệu anonymized để minh họa
 ```
 
 ---
@@ -80,7 +85,7 @@ erp-dwh-td/
    ```
 4. **Audit:** Kiểm tra tính chính xác của dữ liệu:
    ```bash
-   python check_pipeline_health.py
+        python .\scripts\python\check_pipeline_health.py
    ```
 
 ---
