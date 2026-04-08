@@ -97,14 +97,14 @@ erp-dwh-td/
 Dưới đây là các Insight quan trọng được trích xuất từ hệ thống Power BI kết nối trực tiếp với Data Warehouse:
 
 ### 7.1 Executive Revenue Performance
-![Executive Revenue Performance](docs/images/executive_revenue_performance.png)
+![Executive Revenue Performance](docs/images/executive_revenue_performance.jpg)
 
 *   **Nghịch lý Sản lượng (Volume Paradox):** Mặc dù số lượng đơn hàng (Orders) tăng trưởng ấn tượng **+8.8%**, nhưng tổng doanh thu lại sụt giảm nhẹ **-0.5%**. 
 *   **Nguyên nhân gốc rễ:** Giá trị trung bình mỗi đơn hàng (AOV) giảm mạnh **-8.55%**. Điều này cho thấy khách hàng đang có xu hướng chia nhỏ đơn hàng hoặc chuyển sang các dòng sản phẩm giá thấp hơn.
 *   **Khuyến nghị:** Cần rà soát lại các chương trình khuyến mãi/chiết khấu đang áp dụng để đảm bảo không làm pha loãng giá trị đơn hàng.
 
 ### 7.2 Order Behavior & Revenue Drivers
-![Order Behavior Drivers](docs/images/order_behavior_drivers.png)
+![Order Behavior Drivers](docs/images/order_behavior_drivers.jpg)
 
 *   **Hiệu suất giỏ hàng (Basket Size):** Chỉ số Units per Transaction (UPT) giảm **12.54%**, củng cố thêm nhận định về việc quy mô mua hàng trên mỗi giao dịch đang thu hẹp.
 *   **Cơ cấu phân khúc:** Nhóm hàng cao cấp (High-price) vẫn chiếm ưu thế tuyệt đối (71% doanh thu) nhưng đang chững lại về sản lượng.
