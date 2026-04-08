@@ -13,9 +13,15 @@ models:
       - name: order_count
         description: Number of unique orders in this group
       - name: revenue
-        description: Sum of grand_total (includes VAT + delivery)
+        description: Sum of adjusted order revenue after line-level spike correction
+      - name: revenue_raw
+        description: Sum of raw grand_total before spike correction
+      - name: revenue_adjustment
+        description: revenue - revenue_raw (negative when anomalous spikes are capped)
+      - name: spike_line_count
+        description: Number of anomalous order lines contributing to this aggregated row
       - name: cogs
-        description: Cost of goods sold (total_cost)
+        description: Cost of goods sold scaled by order-level adjustment ratio
       - name: gross_profit
         description: revenue − cogs
       - name: gross_margin_pct
@@ -37,10 +43,28 @@ models:
         description: Units ordered in base UOM
       - name: total_amount
         description: Net line revenue after discounts and tax
+      - name: total_amount_adjusted
+        description: Line revenue after capping abnormal unit price spikes (>3x previous-month price for same customer-product)
+      - name: is_price_spike
+        description: true when line unit price is detected as an abnormal spike and capped
+      - name: spike_multiplier
+        description: Raw line unit price / previous-month unit price (customer-product)
+      - name: spike_amount_removed
+        description: total_amount - total_amount_adjusted
       - name: cost
         description: COGS for this line
       - name: profit
         description: Line-level gross profit
+      - name: price_tier
+        description: >
+          Price band based on unit_price_adjusted (spike-corrected).
+          Thresholds are computed dynamically from the full dataset each run:
+          'Low' = below p33, 'Mid' = p33–p67, 'High' = above p67.
+          NULL when unit_price_adjusted is 0 or null (unpriced lines).
+      - name: price_tier_p33
+        description: 33rd-percentile unit_price_adjusted threshold for this run (Low/Mid boundary)
+      - name: price_tier_p67
+        description: 67th-percentile unit_price_adjusted threshold for this run (Mid/High boundary)
 
   - name: fct_order_performance
     description: >
@@ -52,9 +76,15 @@ models:
         description: Natural key from tbl_orders
         tests: [not_null, unique]
       - name: revenue
-        description: grand_total — full order value
+        description: Adjusted order revenue after line-level spike correction
+      - name: revenue_raw
+        description: Raw grand_total from order header
+      - name: revenue_adjustment
+        description: revenue - revenue_raw (negative when spike correction is applied)
       - name: outstanding_ar
         description: revenue − collected (unpaid balance)
+      - name: spike_line_count
+        description: Number of anomalous lines in the order
       - name: fulfilment_rate_pct
         description: "qty_delivered / qty_ordered × 100"
       - name: is_fully_delivered

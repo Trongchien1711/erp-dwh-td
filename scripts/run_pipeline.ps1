@@ -4,10 +4,12 @@
 #   .\scripts\run_pipeline.ps1            # full run (ELT + dbt)
 #   .\scripts\run_pipeline.ps1 -EltOnly   # ELT only, skip dbt
 #   .\scripts\run_pipeline.ps1 -DbtOnly   # dbt only, skip ELT
+#   .\scripts\run_pipeline.ps1 -Anonymize # ELT -> anonymize -> dbt
 
 param(
     [switch]$EltOnly,
-    [switch]$DbtOnly
+    [switch]$DbtOnly,
+    [switch]$Anonymize
 )
 
 Set-StrictMode -Off
@@ -17,6 +19,7 @@ $root     = Split-Path $PSScriptRoot -Parent
 $python   = "$root\.venv\Scripts\python.exe"
 $dbt      = "$root\.venv_dbt\Scripts\dbt.exe"
 $profiles = "$root\dbt_project"
+$anonSql  = "$root\sql\09_anonymize_data.sql"
 
 function Banner($text) {
     $line = "=" * 60
@@ -42,6 +45,35 @@ function Import-DotEnv($path) {
     }
 }
 
+function Test-Anonymized() {
+    $query = "select count(*) from core.dim_customer where email like 'customer%@demo.vn';"
+    $result = & psql -P pager=off -h $env:PG_HOST -p $env:PG_PORT -U $env:PG_USER -d $env:PG_DATABASE -t -A -c $query 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        return $false
+    }
+    return ([int]($result.Trim()) -gt 0)
+}
+
+function Invoke-Anonymize() {
+    if (-not (Test-Path $anonSql)) {
+        Fail "Anonymize SQL not found: $anonSql"
+    }
+
+    if (Test-Anonymized) {
+        Write-Host "[SKIP] Core data already anonymized." -ForegroundColor Yellow
+        return
+    }
+
+    Banner "STAGE 2 -- Anonymize Demo Data"
+    $start = Get-Date
+    $env:PGPASSWORD = $env:PG_PASSWORD
+    & psql -P pager=off -h $env:PG_HOST -p $env:PG_PORT -U $env:PG_USER -d $env:PG_DATABASE -v ON_ERROR_STOP=1 -f $anonSql
+    if ($LASTEXITCODE -ne 0) { Fail "Anonymize SQL exited with code $LASTEXITCODE" }
+    $elapsed = [int]((Get-Date) - $start).TotalSeconds
+    Write-Host ""
+    Write-Host "[OK] Anonymize completed in ${elapsed}s" -ForegroundColor Green
+}
+
 # -- Preflight -------------------------------------------------------
 if (-not (Test-Path $python)) {
     Fail ".venv not found. Run: python -m venv .venv && .venv\Scripts\pip install -r elt\requirements.txt"
@@ -51,6 +83,9 @@ if (-not $EltOnly -and -not (Test-Path $dbt)) {
 }
 if (-not (Test-Path "$root\.env")) {
     Fail ".env file missing. Copy .env.example -> .env and fill in credentials."
+}
+if ($Anonymize -and -not (Get-Command psql -ErrorAction SilentlyContinue)) {
+    Fail "psql not found in PATH. Install PostgreSQL client tools or add psql to PATH."
 }
 
 # Load .env into current process environment (dbt reads env vars, not .env directly)
@@ -68,9 +103,14 @@ if (-not $DbtOnly) {
     Write-Host "[OK] ELT completed in ${elapsed}s" -ForegroundColor Green
 }
 
-# -- Stage 2: dbt (core -> mart) -------------------------------------
+# -- Stage 2: anonymize (optional) -----------------------------------
+if ($Anonymize) {
+    Invoke-Anonymize
+}
+
+# -- Stage 3: dbt (core -> mart) -------------------------------------
 if (-not $EltOnly) {
-    Banner "STAGE 2 -- dbt (core -> mart)"
+    Banner "STAGE 3 -- dbt (core -> mart)"
     $env:PYTHONUTF8 = "1"
     $start = Get-Date
     & $dbt run --profiles-dir $profiles --project-dir $profiles

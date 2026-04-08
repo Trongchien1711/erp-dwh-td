@@ -21,6 +21,35 @@ with orders as (
 
 ),
 
+order_line_adjustments as (
+
+    select
+        order_id,
+        sum(total_amount)                                    as revenue_raw_lines,
+        sum(total_amount_adjusted)                           as revenue_adjusted_lines,
+        sum(case when is_price_spike then 1 else 0 end)     as spike_line_count
+
+    from {{ ref('fct_order_items_detail') }}
+    group by 1
+
+),
+
+orders_adjusted as (
+
+    select
+        o.*,
+        coalesce(a.revenue_adjusted_lines, o.grand_total)    as grand_total_adjusted,
+        coalesce(a.spike_line_count, 0)                      as spike_line_count,
+        case
+            when o.grand_total = 0 then 1
+            else coalesce(a.revenue_adjusted_lines, o.grand_total) / nullif(o.grand_total, 0)
+        end                                                  as adjustment_ratio
+
+    from orders o
+    left join order_line_adjustments a using (order_id)
+
+),
+
 order_items as (
 
     select
@@ -67,12 +96,19 @@ final as (
         o.employee_key,
 
         -- ── order value ────────────────────────────────────────
-        o.grand_total       as revenue,
-        o.total_cost        as cogs,
-        o.total_profit      as gross_profit,
+        o.grand_total_adjusted
+                    as revenue,
+        o.grand_total       as revenue_raw,
+        o.grand_total_adjusted - o.grand_total
+                    as revenue_adjustment,
+        o.total_cost * o.adjustment_ratio
+                    as cogs,
+        o.grand_total_adjusted - (o.total_cost * o.adjustment_ratio)
+                    as gross_profit,
         o.total_payment     as collected,
-        o.grand_total - o.total_payment
+        o.grand_total_adjusted - o.total_payment
                             as outstanding_ar,
+        o.spike_line_count,
 
         -- ── fulfilment ─────────────────────────────────────────
         coalesce(i.total_qty_ordered, 0)      as qty_ordered,
@@ -105,7 +141,7 @@ final as (
         o.type_orders,
         o.type_bills
 
-    from orders o
+    from orders_adjusted o
     left join order_items i using (order_id)
 
 )

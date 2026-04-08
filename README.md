@@ -1,7 +1,7 @@
 # ERP Data Warehouse (erp-dwh-td)
 
 > Dự án cá nhân — Xây dựng hệ thống Data Warehouse hoàn chỉnh để tự động hóa báo cáo từ dữ liệu ERP thực tế.
-> **Kết quả then chốt:** Tiết kiệm **85% thời gian** tổng hợp báo cáo hàng ngày (từ 4h xuống 15 phút) và phát hiện các rủi ro tồn kho trị giá hàng chục tỷ đồng.
+> **Kết quả then chốt:** Tự động hóa **85% thời gian** báo cáo (từ 4h xuống 15 phút), phát hiện **20 tỷ VND WIP** tồn đọng, và tối ưu hóa AOV thông qua phân tích tập khách hàng.
 > **Stack:** MySQL (Source) → Python (ELT) → PostgreSQL (Star Schema) → dbt (Models) → Power BI (Insights)
 
 ---
@@ -11,7 +11,7 @@
 Dự án này không chỉ là một pipeline kỹ thuật mà là một giải pháp giải quyết trực tiếp các điểm nghẽn về dữ liệu trong vận hành:
 
 - **Tự động hóa 85% quy trình:** Chuyển đổi từ việc xuất Excel thủ công sang Pipeline tự động, giúp dữ liệu luôn sẵn sàng mỗi sáng cho BOD thay vì phải chờ nhân sự tổng hợp đến cuối ngày.
-- **Phân loại & Tối ưu Khách hàng (ABC Analysis):** Xác định nhóm 5 khách hàng chiến lược đóng góp 80% doanh thu. Cảnh báo sớm sự sụt giảm 60% từ các thương hiệu lớn (Reebok, Adidas) để có chiến lược chăm sóc kịp thời.
+- **Phân loại & Tối ưu Khách hàng (ABC Analysis):** Xác định nhóm 5 khách hàng chiến lược đóng góp 80% doanh thu. Đặc biệt, phát hiện "nghịch lý sản lượng" (Orders tăng 8.8% nhưng Revenue giảm 0.5%) để điều chỉnh chính sách chiết khấu kịp thời.
 - **Kiểm soát Tồn kho & WIP:** Phát hiện lượng hàng đọng trên chuyền (WIP) lên tới **20 tỷ VND**, tốc độ quay vòng kho thấp (0.6-0.83). Đề xuất cải tiến giúp giảm lãng phí vốn lưu động.
 - **Minh bạch hóa Chi phí:** Chuẩn hóa BOM cho hơn 14 nhóm sản phẩm, giúp tính toán chính xác biên lợi nhuận thực tế dựa trên tiêu hao nguyên vật liệu thay vì số liệu ước tính.
 
@@ -90,7 +90,29 @@ erp-dwh-td/
 
 ---
 
-## 6. Liên hệ
+---
+
+## 7. Phân tích Insight từ Dashboard (Data Discovery)
+
+Dưới đây là các Insight quan trọng được trích xuất từ hệ thống Power BI kết nối trực tiếp với Data Warehouse:
+
+### 7.1 Executive Revenue Performance
+![Executive Revenue Performance](docs/images/executive_revenue_performance.png)
+
+*   **Nghịch lý Sản lượng (Volume Paradox):** Mặc dù số lượng đơn hàng (Orders) tăng trưởng ấn tượng **+8.8%**, nhưng tổng doanh thu lại sụt giảm nhẹ **-0.5%**. 
+*   **Nguyên nhân gốc rễ:** Giá trị trung bình mỗi đơn hàng (AOV) giảm mạnh **-8.55%**. Điều này cho thấy khách hàng đang có xu hướng chia nhỏ đơn hàng hoặc chuyển sang các dòng sản phẩm giá thấp hơn.
+*   **Khuyến nghị:** Cần rà soát lại các chương trình khuyến mãi/chiết khấu đang áp dụng để đảm bảo không làm pha loãng giá trị đơn hàng.
+
+### 7.2 Order Behavior & Revenue Drivers
+![Order Behavior Drivers](docs/images/order_behavior_drivers.png)
+
+*   **Hiệu suất giỏ hàng (Basket Size):** Chỉ số Units per Transaction (UPT) giảm **12.54%**, củng cố thêm nhận định về việc quy mô mua hàng trên mỗi giao dịch đang thu hẹp.
+*   **Cơ cấu phân khúc:** Nhóm hàng cao cấp (High-price) vẫn chiếm ưu thế tuyệt đối (71% doanh thu) nhưng đang chững lại về sản lượng.
+*   **Chiến lược:** Đẩy mạnh các gói Combo (Bundling) hoặc chính sách ưu đãi dựa trên khối lượng (Volume-based incentives) để kích thích khách hàng mua nhiều hơn trên mỗi lần giao dịch.
+
+---
+
+## 8. Liên hệ
 **Nguyễn Trọng Chiến**  
 Email: trongchien1711@gmail.com  
 GitHub Repo: [erp-dwh-td](https://github.com/Trongchien1711/erp-dwh-td)

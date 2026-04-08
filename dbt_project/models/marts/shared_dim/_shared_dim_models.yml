@@ -30,6 +30,25 @@ models:
       - name: product_name
         description: Product name
       - name: price_import
-        description: Standard import / purchase cost
+        description: "Standard import cost from ERP product master. WARNING: not populated in ERP — always 0."
       - name: price_sell
-        description: Standard sell price
+        description: "Standard sell price from ERP product master. WARNING: not populated in ERP — always 0."
+      - name: avg_sell_price_actual
+        description: >
+          Quantity-weighted average selling price (VND) from actual order transactions
+          across all available history. Based on unit_price_adjusted (spike-corrected).
+          NULL if the product has never been sold.
+      - name: median_sell_price_actual
+        description: >
+          Median selling price (VND) across all available history.
+          Less sensitive to outliers than avg_sell_price_actual.
+          NULL if the product has never been sold.
+      - name: last_sell_price_actual
+        description: Most recent actual selling price (VND) from the latest order line across all available history.
+      - name: sold_order_count_12m
+        description: Number of distinct orders containing this product across all available history.
+      - name: price_tier
+        description: >
+          Product price band based on avg_sell_price_actual vs p33/p67 thresholds across all active SKUs.
+          'Low' = cheapest third, 'Mid' = middle third, 'High' = most expensive third.
+          NULL if the product has never been sold.

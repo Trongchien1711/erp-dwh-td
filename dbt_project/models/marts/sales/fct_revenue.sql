@@ -21,6 +21,37 @@ with orders as (
 
 ),
 
+order_line_adjustments as (
+
+    -- Build order-level corrected revenue from line-level spike fixes.
+    select
+        order_id,
+        sum(total_amount)                                        as revenue_raw_lines,
+        sum(total_amount_adjusted)                               as revenue_adjusted_lines,
+        sum(case when is_price_spike then 1 else 0 end)         as spike_line_count
+
+    from {{ ref('fct_order_items_detail') }}
+    group by 1
+
+),
+
+orders_adjusted as (
+
+    select
+        o.*,
+        coalesce(a.revenue_adjusted_lines, o.grand_total)        as grand_total_adjusted,
+        coalesce(a.revenue_raw_lines, o.grand_total)             as grand_total_from_lines,
+        coalesce(a.spike_line_count, 0)                          as spike_line_count,
+        case
+            when o.grand_total = 0 then 1
+            else coalesce(a.revenue_adjusted_lines, o.grand_total) / nullif(o.grand_total, 0)
+        end                                                      as adjustment_ratio
+
+    from orders o
+    left join order_line_adjustments a using (order_id)
+
+),
+
 final as (
 
     select
@@ -50,21 +81,26 @@ final as (
 
         -- ── aggregated measures ────────────────────────────────
         count(distinct order_id)                        as order_count,
-        sum(grand_total)                                as revenue,
-        sum(total_cost)                                 as cogs,
-        sum(total_profit)                               as gross_profit,
+        sum(grand_total_adjusted)                       as revenue,
+        sum(total_cost * adjustment_ratio)              as cogs,
+        sum(grand_total_adjusted - (total_cost * adjustment_ratio))
+                                                        as gross_profit,
         round(
-            sum(total_profit) / nullif(sum(grand_total), 0) * 100,
+            sum(grand_total_adjusted - (total_cost * adjustment_ratio))
+            / nullif(sum(grand_total_adjusted), 0) * 100,
             2
         )                                               as gross_margin_pct,
         sum(total_payment)                              as collected,
-        sum(grand_total) - sum(total_payment)           as outstanding_ar,
-        avg(grand_total)                                as avg_order_value,
+        sum(grand_total_adjusted) - sum(total_payment)  as outstanding_ar,
+        avg(grand_total_adjusted)                       as avg_order_value,
         sum(total_tax)                                  as total_tax,
         sum(total_discount_percent + total_discount_direct)
-                                                        as total_discount
+                                                        as total_discount,
+        sum(grand_total)                                as revenue_raw,
+        sum(grand_total_adjusted) - sum(grand_total)    as revenue_adjustment,
+        sum(spike_line_count)                           as spike_line_count
 
-    from orders
+    from orders_adjusted
     group by 1, 2, 3, 4, 5, 6, 7, 8,
              9, 10, 11, 12, 13, 14, 15, 16, 17,
              18
