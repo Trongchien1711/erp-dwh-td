@@ -5,19 +5,23 @@ models:
     description: >
       Daily stock movement summary. Grain: one row per
       (date × product × warehouse × movement_type × movement_subtype).
-      INBOUND from fact_purchase_product_items (receipt lines).
+      INBOUND from fact_warehouse_stock (complete nhap kho ledger — all sources:
+      purchases + production output). Grouped by import_date_key, product_key,
+      warehouse_key, type_items. Total nhap = 18.57B matches warehouse_stock exactly.
       OUTBOUND from fact_warehouse_export — all outbound movement types with exact
       export date: customer delivery, production consumption, transfers, and losses.
       ETL: staging.tblwarehouse_export → core.fact_warehouse_export (transform_core.py).
+      Balance: in > out 2022-2024, 2026; 2025 has slight out > in (normal — draws
+      from accumulated stock). Grand total: in=18.57B, out=18.52B, net=+51M.
     columns:
       - name: movement_type
         description: INBOUND or OUTBOUND
       - name: movement_subtype
         description: >
-          PURCHASE_RECEIPT for inbound.
+          For inbound: type_items from fact_warehouse_stock (product/nvl/UNKNOWN).
           For outbound: type_export value from ERP (numeric code for movement category).
       - name: quantity_in
-        description: Units received into warehouse (INBOUND rows)
+        description: Units received into warehouse — ALL inbound types. Source fact_warehouse_stock.quantity
       - name: quantity_out
         description: >
           Units exported — ALL outbound types (customer delivery + production
@@ -26,7 +30,7 @@ models:
       - name: net_movement
         description: quantity_in − quantity_out
       - name: value_in
-        description: Inbound receipt amount from fact_purchase_product_items.amount
+        description: "0 by design (no consistent inbound value in warehouse stock ledger)"
       - name: value_out
         description: 0 by design (no consistent outbound value in ERP export table)
 

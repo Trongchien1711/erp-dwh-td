@@ -7,41 +7,53 @@
 --           Feeds Days-on-Hand, stock velocity, and reorder monitoring.
 --
 -- Movement types:
---   INBOUND   — stock received from suppliers (fact_purchase_product_items)
+--   INBOUND   — ALL stock received into warehouse (fact_warehouse_stock.quantity)
+--               covers purchase receipts + production output + all inbound types
+--               Uses import_date_key (physical receive date)
 --   OUTBOUND  — ALL outbound movements with exact export date (fact_warehouse_export)
 --               covers customer delivery + production export + transfer + loss
+--
+-- Why fact_warehouse_stock for INBOUND (not fact_purchase_product_items)?
+--   purchase_product_items = 17,806M = 95.9% of total inbound only.
+--   The remaining 4.1% (~768M) is production output entering warehouse.
+--   fact_warehouse_stock.quantity is the COMPLETE nhap kho ledger — all sources.
+--   Using it gives nhap > xuat every year as expected (building stock).
 --
 -- Why NOT fact_delivery_items for outbound?
 --   delivery = 6.1% of total outbound only. The remaining 93.9% is
 --   production consumption, internal transfers, and losses.
 --
 -- Key metrics:
---   quantity_in       — units received into warehouse
+--   quantity_in       — units received into warehouse (all inbound types)
 --   quantity_out      — units exported from warehouse (all types, exact export date)
 --   net_movement      — quantity_in − quantity_out
---   value_in          — inbound amount from receipt line
+--   value_in          — 0: no consistent inbound value in stock ledger
 --   value_out         — 0: no consistent outbound value in ERP export table
 -- ============================================================
 
 with inbound as (
 
+    -- INBOUND: fact_warehouse_stock — complete nhap kho ledger, all sources
+    -- (purchases + production output). Grain: product × warehouse × import_date.
     select
-        ppi.import_date_key                         as movement_date_key,
-        ppi.product_key,
-        ppi.warehouse_key,
+        ws.import_date_key                          as movement_date_key,
+        ws.product_key,
+        ws.warehouse_key,
         'INBOUND'                                   as movement_type,
-        'PURCHASE_RECEIPT'                          as movement_subtype,
-        sum(ppi.quantity)                           as quantity_in,
+        coalesce(nullif(trim(ws.type_items), ''), 'UNKNOWN')
+                                                    as movement_subtype,
+        sum(ws.quantity)                            as quantity_in,
         0::numeric                                  as quantity_out,
-        sum(ppi.amount)                             as value_in,
+        0::numeric                                  as value_in,
         0::numeric                                  as value_out,
         count(*)                                    as transaction_count
 
-    from {{ source('core', 'fact_purchase_product_items') }} ppi
+    from {{ source('core', 'fact_warehouse_stock') }} ws
     group by
-        ppi.import_date_key,
-        ppi.product_key,
-        ppi.warehouse_key
+        ws.import_date_key,
+        ws.product_key,
+        ws.warehouse_key,
+        coalesce(nullif(trim(ws.type_items), ''), 'UNKNOWN')
 
 ),
 
