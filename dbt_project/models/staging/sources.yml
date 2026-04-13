@@ -105,6 +105,12 @@ sources:
           - name: stock_id
             tests: [not_null]
 
+      - name: fact_warehouse_export
+        description: Warehouse export transactions (all outbound movement types)
+        columns:
+          - name: export_id
+            tests: [not_null]
+
       - name: fact_purchase_order_items
         description: Purchase order line items
         columns:

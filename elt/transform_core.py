@@ -617,6 +617,40 @@ WHERE NOT EXISTS (
 );
 """
 
+SQL_FACT_WH_EXPORT = """
+WITH deleted AS (
+    -- Remove existing rows for ids being loaded (idempotent re-insert)
+    DELETE FROM core.fact_warehouse_export
+    WHERE export_id IN (SELECT id FROM staging.tblwarehouse_export)
+)
+INSERT INTO core.fact_warehouse_export (
+    export_id, product_key, warehouse_key, location_key,
+    export_date_key,
+    quantity, product_quantity_unit, product_quantity_payment,
+    type_items, type_export, lot_code, date_sx, date_sd,
+    etl_loaded_at, etl_source
+)
+SELECT
+    we.id,
+    dp.product_key,
+    dw.warehouse_key,
+    dwl.location_key,
+    COALESCE(TO_CHAR(we.date_export::DATE, 'YYYYMMDD')::INT, 19000101),
+    we.quantity,
+    we.product_quantity_unit,
+    we.product_quantity_payment,
+    we.type_items,
+    we.type_export::VARCHAR,
+    we.lot_code,
+    we.date_sx,
+    we.date_sd,
+    NOW(), 'tblwarehouse_export'
+FROM staging.tblwarehouse_export        we
+LEFT JOIN core.dim_product            dp  ON dp.product_id   = we.product_id
+LEFT JOIN core.dim_warehouse          dw  ON dw.warehouse_id = we.warehouse_id
+LEFT JOIN core.dim_warehouse_location dwl ON dwl.location_id = we.localtion;
+"""
+
 SQL_FACT_TRANSFER_WAREHOUSE = """
 INSERT INTO core.fact_transfer_warehouse (
     transfer_detail_id, transfer_id,
@@ -675,6 +709,7 @@ TRANSFORM_STEPS = [
     ("fact_production_order_items",  SQL_FACT_PRODUCTION_ORDER_ITEMS),
     ("fact_production_stages",       SQL_FACT_PRODUCTION_STAGES),
     ("fact_purchase_product_items",  SQL_FACT_PURCHASE_PRODUCT_ITEMS),
+    ("fact_warehouse_export",         SQL_FACT_WH_EXPORT),
     ("fact_transfer_warehouse",      SQL_FACT_TRANSFER_WAREHOUSE),
 ]
 

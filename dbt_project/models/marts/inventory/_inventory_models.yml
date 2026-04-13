@@ -4,24 +4,31 @@ models:
   - name: fct_inbound_outbound
     description: >
       Daily stock movement summary. Grain: one row per
-      (movement_date × product × warehouse × movement_type).
-      Combines inbound receipts (fact_purchase_product_items) and
-      outbound deliveries (fact_delivery_items) into a single flow table.
+      (date × product × warehouse × movement_type × movement_subtype).
+      INBOUND from fact_purchase_product_items (receipt lines).
+      OUTBOUND from fact_warehouse_export — all outbound movement types with exact
+      export date: customer delivery, production consumption, transfers, and losses.
+      ETL: staging.tblwarehouse_export → core.fact_warehouse_export (transform_core.py).
     columns:
       - name: movement_type
         description: INBOUND or OUTBOUND
+      - name: movement_subtype
+        description: >
+          PURCHASE_RECEIPT for inbound.
+          For outbound: type_export value from ERP (numeric code for movement category).
       - name: quantity_in
         description: Units received into warehouse (INBOUND rows)
       - name: quantity_out
-        description: Units shipped out of warehouse (OUTBOUND rows)
+        description: >
+          Units exported — ALL outbound types (customer delivery + production
+          consumption + transfers + losses). Source: fact_warehouse_export.quantity
+          with exact export_date_key.
       - name: net_movement
         description: quantity_in − quantity_out
       - name: value_in
-        description: >
-          Inbound value = quantity × weighted-avg supplier price from PO history.
-          (price_import in dim_product is not populated in ERP; PO price used instead.)
+        description: Inbound receipt amount from fact_purchase_product_items.amount
       - name: value_out
-        description: Outbound revenue value (total_amount from delivery)
+        description: 0 by design (no consistent outbound value in ERP export table)
 
   - name: fct_production_efficiency
     description: >

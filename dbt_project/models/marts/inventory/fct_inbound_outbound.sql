@@ -1,21 +1,26 @@
 -- ============================================================
 -- fct_inbound_outbound
 -- Domain  : Inventory
--- Grain   : One row per (date × product × warehouse × movement_type)
+-- Grain   : One row per (date × product × warehouse × movement_type × movement_subtype)
 -- Purpose : Daily stock movement summary — inbound receipts vs
---           outbound deliveries per warehouse and product.
+--           ALL outbound movements per warehouse and product.
 --           Feeds Days-on-Hand, stock velocity, and reorder monitoring.
 --
 -- Movement types:
 --   INBOUND   — stock received from suppliers (fact_purchase_product_items)
---   OUTBOUND  — stock issued to customers     (fact_delivery_items)
+--   OUTBOUND  — ALL outbound movements with exact export date (fact_warehouse_export)
+--               covers customer delivery + production export + transfer + loss
+--
+-- Why NOT fact_delivery_items for outbound?
+--   delivery = 6.1% of total outbound only. The remaining 93.9% is
+--   production consumption, internal transfers, and losses.
 --
 -- Key metrics:
 --   quantity_in       — units received into warehouse
---   quantity_out      — units shipped out of warehouse
+--   quantity_out      — units exported from warehouse (all types, exact export date)
 --   net_movement      — quantity_in − quantity_out
---   value_in          — 0: purchase receipt prices not populated in ERP source
---   value_out         — outbound revenue value (total_amount from delivery)
+--   value_in          — inbound amount from receipt line
+--   value_out         — 0: no consistent outbound value in ERP export table
 -- ============================================================
 
 with inbound as (
@@ -25,6 +30,7 @@ with inbound as (
         ppi.product_key,
         ppi.warehouse_key,
         'INBOUND'                                   as movement_type,
+        'PURCHASE_RECEIPT'                          as movement_subtype,
         sum(ppi.quantity)                           as quantity_in,
         0::numeric                                  as quantity_out,
         sum(ppi.amount)                             as value_in,
@@ -39,24 +45,30 @@ with inbound as (
 
 ),
 
+-- OUTBOUND: fact_warehouse_export — all outbound movements recorded per transaction
+-- with exact export date. Covers customer delivery, production consumption,
+-- warehouse transfers, and losses. ETL: staging.tblwarehouse_export → core (transform_core.py).
 outbound as (
 
     select
-        di.delivery_date_key                        as movement_date_key,
-        di.product_key,
-        di.warehouse_key,
+        we.export_date_key                          as movement_date_key,
+        we.product_key,
+        we.warehouse_key,
         'OUTBOUND'                                  as movement_type,
+        coalesce(nullif(trim(we.type_export), ''), 'UNKNOWN')
+                                                    as movement_subtype,
         0::numeric                                  as quantity_in,
-        sum(di.quantity)                            as quantity_out,
+        sum(coalesce(we.quantity, 0))               as quantity_out,
         0::numeric                                  as value_in,
-        sum(di.total_amount)                        as value_out,
+        0::numeric                                  as value_out,
         count(*)                                    as transaction_count
 
-    from {{ source('core', 'fact_delivery_items') }} di
+    from {{ source('core', 'fact_warehouse_export') }} we
     group by
-        di.delivery_date_key,
-        di.product_key,
-        di.warehouse_key
+        we.export_date_key,
+        we.product_key,
+        we.warehouse_key,
+        coalesce(nullif(trim(we.type_export), ''), 'UNKNOWN')
 
 ),
 
@@ -94,6 +106,7 @@ with_dims as (
 
         -- ── movement ───────────────────────────────────────────
         c.movement_type,
+        c.movement_subtype,
         c.quantity_in,
         c.quantity_out,
         c.value_in,
@@ -126,6 +139,7 @@ final as (
         warehouse_name,
         id_branch,
         movement_type,
+        movement_subtype,
         quantity_in,
         quantity_out,
         quantity_in - quantity_out      as net_movement,
