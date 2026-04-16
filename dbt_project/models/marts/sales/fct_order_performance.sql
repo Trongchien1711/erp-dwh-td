@@ -10,7 +10,6 @@
 --   fulfilment_rate     — % of ordered qty actually delivered
 --   outstanding_qty     — quantity not yet delivered
 --   is_fully_delivered  — boolean flag (fulfilment_rate = 100%)
---   is_paid             — status_payment = 1 (fully paid)
 --   is_completed        — is_end = 1 (order closed)
 --   total_items         — number of product lines
 -- ============================================================
@@ -105,9 +104,6 @@ final as (
                     as cogs,
         o.grand_total_adjusted - (o.total_cost * o.adjustment_ratio)
                     as gross_profit,
-        o.total_payment     as collected,
-        o.grand_total_adjusted - o.total_payment
-                            as outstanding_ar,
         o.spike_line_count,
 
         -- ── fulfilment ─────────────────────────────────────────
@@ -129,9 +125,7 @@ final as (
         end                                   as is_fully_delivered,
 
         -- ── payment & completion flags ─────────────────────────
-        o.status_payment,
-        case when o.status_payment = 1 then 1 else 0 end
-                                              as is_paid,
+
         o.is_end                              as is_completed,
         o.is_cancel,
 

@@ -13,6 +13,7 @@ Dự án này không chỉ là một pipeline kỹ thuật mà là một giải 
 - **Tự động hóa 85% quy trình:** Chuyển đổi từ việc xuất Excel thủ công sang Pipeline tự động, giúp dữ liệu luôn sẵn sàng mỗi sáng cho BOD thay vì phải chờ nhân sự tổng hợp đến cuối ngày.
 - **Phân loại & Tối ưu Khách hàng (ABC Analysis):** Xác định nhóm 5 khách hàng chiến lược đóng góp 80% doanh thu. Đặc biệt, phát hiện "nghịch lý sản lượng" (Orders tăng 8.8% nhưng Revenue giảm 0.5%) để điều chỉnh chính sách chiết khấu kịp thời.
 - **Kiểm soát Tồn kho & WIP:** Phát hiện lượng hàng đọng trên chuyền (WIP) lên tới **20 tỷ VND**, tốc độ quay vòng kho thấp (0.6-0.83). Đề xuất cải tiến giúp giảm lãng phí vốn lưu động.
+- **Đã Đối soát Dữ liệu (Audited):** Hệ thống tồn kho đã được kiểm chứng bằng 87+ data tests, xác nhận **0 lỗi tồn kho âm** (Historical Stock) và độ phủ định giá đạt ~98%.
 - **Minh bạch hóa Chi phí:** Chuẩn hóa BOM cho hơn 14 nhóm sản phẩm, giúp tính toán chính xác biên lợi nhuận thực tế dựa trên tiêu hao nguyên vật liệu thay vì số liệu ước tính.
 
 ---

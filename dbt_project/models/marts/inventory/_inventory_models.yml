@@ -20,6 +20,11 @@ models:
         description: >
           For inbound: type_items from fact_warehouse_stock (product/nvl/UNKNOWN).
           For outbound: type_export value from ERP (numeric code for movement category).
+      - name: movement_purpose
+        description: >
+          Logical categorization of the movement: Sales, Internal Transfer, 
+          Production Output, Consumption, Loss/Return. Use this to filter out 
+          non-sales logic.
       - name: quantity_in
         description: Units received into warehouse — ALL inbound types. Source fact_warehouse_stock.quantity
       - name: quantity_out
@@ -28,7 +33,28 @@ models:
           consumption + transfers + losses). Source: fact_warehouse_export.quantity
           with exact export_date_key.
       - name: net_movement
-        description: quantity_in − quantity_out
+        description: inbound_this_month - outbound_this_month
+      - name: value_in
+        description: "0 by design (no consistent inbound value in warehouse stock ledger)"
+      - name: value_out
+        description: 0 by design (no consistent outbound value in ERP export table)
+
+  - name: fct_production_sales_reconciliation
+    description: >
+      Reconciliation between factory output (Nhật ký sản xuất) and actual deliveries (Phiếu giao hàng).
+      Designed to bypass warehouse transfer "noise" and show true manufacturing efficiency.
+      
+      Inventory Turnover is calculated as (Rolling 12M Sales) / (Current Month Average Stock).
+      Target range per user: 0.6 - 0.83.
+    columns:
+      - name: qty_produced
+        description: Actual production output from fact_production_stages.number_face.
+      - name: qty_sold
+        description: Actual quantities delivered to customers from fact_delivery_items.
+      - name: production_sales_variance
+        description: qty_produced - qty_sold. positive = stock building, negative = fulfillment from backlog.
+      - name: inventory_turnover
+        description: Monthly inventory turnover ratio. Target range 0.6-0.83.
       - name: value_in
         description: "0 by design (no consistent inbound value in warehouse stock ledger)"
       - name: value_out

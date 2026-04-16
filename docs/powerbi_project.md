@@ -218,15 +218,28 @@ fct_stock_snapshot    → (standalone, filter by warehouse/product)
 ---
 
 ### 4.7 Inventory Snapshot — Tồn kho
-**Nguồn:** `mart.fct_stock_snapshot`, `mart.fct_inbound_outbound`
+**Nguồn:** `mart.fct_stock_snapshot`, `mart.fct_inbound_outbound`, `mart.dim_material_mart`
 
 | Visual | Metric | Mô tả |
 |--------|--------|-------|
-| Card | Total SKU còn tồn | `COUNT(product_key)` where qty_left > 0 |
-| Card | Tổng giá trị tồn kho | `SUM(quantity_left × unit_price)` |
-| Table | Top sản phẩm tồn nhiều nhất | Sort by quantity_left |
-| Bar | Tồn kho theo nhà kho | Phân bổ giữa các kho |
-| Line | Nhập/xuất kho theo tháng | Inbound vs Outbound |
+| Card | Total SKU còn tồn | `COUNTROWS(FILTER(fct_stock_snapshot, quantity_left > 0))` |
+| Card | Tổng giá trị tồn kho (định giá) | `SUM(stock_value)` — chỉ các lot `is_valued = TRUE` |
+| Card | % lot có giá | `DIVIDE(COUNTROWS(FILTER(..., is_valued)), COUNTROWS(...))` |
+| Table | Top sản phẩm tồn nhiều nhất | Sort by `quantity_left`, filter `item_type = 'product'` |
+| Table | Top NPL tồn nhiều nhất | Filter `item_type = 'nvl'`, dùng `material_name`, `npl_type` |
+| Bar | Tồn kho theo nhà kho | Group by `warehouse_name`, sum `quantity_left` |
+| Bar | Inbound theo tháng | `fct_inbound_outbound` WHERE `movement_type = 'INBOUND'` |
+| Bar | Outbound theo tháng | `fct_inbound_outbound` WHERE `movement_type = 'OUTBOUND'` |
+| Slicer | Loại hàng | `item_type` = `product` / `nvl` |
+| Slicer | Nhóm NPL | `npl_type` (Giay / Decal / Kem in / Muc UV / Bao bi...) |
+
+**Lưu ý quan trọng về nguồn giá:**
+- `price_source = 'lot_price'` (98%): giá lấy từ giá nhập kho gốc của lô → **đáng tin cậy nhất**
+- `price_source = 'npl_po_fallback'` (~0.9%): giá lấy từ PO mua NPL gần nhất cùng vật liệu → **xấp xỉ**
+- `price_source = 'po_fallback'` (sản phẩm mua ngoài): giá lấy từ PO nhà cung cấp → **xấp xỉ**
+- `price_source = 'no_price'` (~1.1%): không có giá → loại khỏi tính tổng giá trị
+
+**Không nên dùng inbound − outbound để tính tồn kho tháng quá khứ** (xem mục 5.4).
 
 ---
 
@@ -299,22 +312,122 @@ Insight có thể khai thác:
   → Đơn hàng lớn (AOV cao) có tỉ lệ giao đủ thấp hơn không?
 ```
 
-### 5.4 Inventory Turnover & Dead Stock
-**Tại sao thú vị:** Phát hiện vốn bị chôn trong tồn kho.
+### 5.4 Inventory Analysis — Tồn kho & Vật tư
+**Tại sao thú vị:** Phát hiện vốn bị chôn trong tồn kho, kiểm soát NPL nhập kho.
+
+#### Kiến trúc dữ liệu tồn kho (đã xác minh)
 ```
-Nguồn: mart.fct_stock_snapshot + mart.fct_inbound_outbound
-- quantity_left (tồn hiện tại)
-- quantity_exported (đã xuất)
-- lot_code (truy xuất lô hàng)
+core.fact_warehouse_stock     ← sổ cái lô hàng (lot ledger)
+   ├── product_key            (sản phẩm: thành phẩm / bán thành phẩm)
+   ├── material_key           (NPL: tblwarehouse_product.type_items = 'nvl')
+   ├── quantity               tổng nhập gốc của lô
+   ├── quantity_left          tồn hiện tại của lô
+   └── quantity_exported      tổng đã xuất từ lô
 
-Metric cần tính trong DAX:
-  Inventory Turnover = qty_exported / AVG(quantity_left)
-  Days in Inventory  = 365 / Inventory Turnover
+mart.fct_stock_snapshot       ← view phân tích trên lot ledger
+   ├── item_type              'product' | 'nvl'
+   ├── item_code/item_name    coalesce(product_code, material_code)
+   ├── unit_price             lot_price / quantity (fallback: PO price)
+   ├── unit_price_capped      product: capped 50,000 VND; nvl: không cap
+   ├── stock_value            quantity_left × unit_price_capped
+   ├── price_source           'lot_price' | 'npl_po_fallback' | 'po_fallback' | 'no_price'
+   └── is_valued              TRUE khi có lot_price gốc
 
-Insight:
-  → SKU nào tồn > 180 ngày → dead stock
-  → Kho nào đang chứa nhiều nhất?
-  → So sánh tồn kho đầu kỳ vs cuối kỳ
+mart.fct_inbound_outbound     ← movement log theo ngày
+   ├── INBOUND  = từ fact_warehouse_stock (lot ledger, đầy đủ)
+   └── OUTBOUND = từ fact_warehouse_export (export transaction log)
+```
+
+#### Tại sao KHÔNG thể reconstruct tồn tháng quá khứ
+```
+Vấn đề được xác nhận (14/04/2026):
+  - Lot ledger outbound: 18,296,520,773 units (813K lots - products)
+  - fact_warehouse_export: 18,328,282,703 units (859K rows - products)
+  - Chênh lệch: +31M units / +46K rows
+
+Nguyên nhân: fact_warehouse_export và lot ledger là 2 bảng khác nhau
+  trong MySQL ERP, KHÔNG nhất thiết đối chiếu nhau:
+  - Có thể bào gồm xuất từ lot đã xóa/hủy
+  - Các giao dịch nội bộ được ghi double
+  - Không có ngày trên từng dòng lot_quantity_export
+
+Kết luận:
+  ✓ fct_stock_snapshot   → TỒN KHO HIỆN TẠI: chính xác
+  ✓ fct_inbound_outbound → TRENDING NHẬP/XUẤT theo thời gian: dùng được
+  ✗ inbound - outbound   → RECONSTRUCT TỒN THÁNG QUÁ KHỨ: không tin cậy
+```
+
+#### DAX Measures cho tồn kho
+```dax
+-- Tổng tồn kho hiện tại (số lượng)
+Total Stock Qty = SUM(fct_stock_snapshot[quantity_left])
+
+-- Tổng giá trị tồn kho (chỉ lot có giá)
+Stock Value =
+    CALCULATE(
+        SUM(fct_stock_snapshot[stock_value]),
+        fct_stock_snapshot[is_valued] = TRUE()
+    )
+
+-- % lot được định giá
+Valued Lot Pct =
+    DIVIDE(
+        COUNTROWS(FILTER(fct_stock_snapshot, fct_stock_snapshot[is_valued])),
+        COUNTROWS(fct_stock_snapshot)
+    )
+
+-- Dead stock: lot nhập > 180 ngày chưa xuất hết
+Dead Stock Qty =
+    CALCULATE(
+        SUM(fct_stock_snapshot[quantity_left]),
+        DATEDIFF(fct_stock_snapshot[import_date_key],  -- cần join dim_date
+                 TODAY(), DAY) > 180,
+        fct_stock_snapshot[quantity_left] > 0
+    )
+
+-- Inbound tháng này
+Inbound MTD =
+    CALCULATE(
+        SUM(fct_inbound_outbound[quantity_in]),
+        fct_inbound_outbound[movement_type] = "INBOUND",
+        DATESMTD(fct_inbound_outbound[movement_date])
+    )
+```
+
+#### Insight khai thác được
+```
+→ Top sản phẩm tồn nhiều nhất: item_type='product', sort by quantity_left
+→ Top NPL tồn nhiều nhất: item_type='nvl', group by npl_type (Giay/Decal/Kem in...)
+→ Kho nào đang chứa nhiều giá trị nhất: group by warehouse_name, sum stock_value
+→ Lot hết date_sd (hạng dùng): filter date_sd < TODAY(), quantity_left > 0
+→ Dead stock: import_date_key cũ mà quantity_left > 0
+→ Price source quality: breakdown is_valued, price_source cho audit
+→ NPL coverage: 63,962/63,964 NVL lots có material_name (99.99%)
+```
+
+#### Số liệu thực tế (14/04/2026)
+```
+fct_stock_snapshot:  877,569 lots tổng
+  product lots:      812,168  tồn = 80,736,383 units
+  nvl lots:           63,961  tồn = 4,518,472 units
+  UNKNOWN:             1,440  tồn =    13,929 units
+
+Price coverage NVL (fct_stock_snapshot):
+  lot_price:        62,702 lots (98.2%) — có giá gốc
+  npl_po_fallback:     571 lots ( 0.9%) — ước tính từ PO
+  no_price:            691 lots ( 1.1%) — không có giá
+
+Price coverage Products (fct_stock_snapshot):
+  no_price:         811,682 lots (99.9%) — ERP không ghi giá lô cho thành
+                    phẩm sản xuất nội bộ (cost ở BOM/NPL level, không ở kho lô)
+  lot_price:            430 lots — giá ≈ 0
+  po_fallback:           56 lots — 11M VND (hàng mua ngoài)
+  → Kết luận: giá trị tồn kho sản phẩm KHÔNG có trong ERP lot data.
+
+fct_stock_monthly_snapshot: 200,574 rows — 39 tháng × product + NVL
+  product: est_qty_end_month có (quantity trend), est_value_end_month = NULL
+  nvl:     est_qty_end_month + est_value_end_month (~64-83% rows có giá)
+           price source: fct_stock_snapshot weighted avg (lot_price → npl_po_fallback)
 ```
 
 ### 5.5 Supplier Concentration & Price Variance
@@ -420,8 +533,9 @@ Insight:
 | `fct_gross_profit` | ngày × khách | 15+ | Finance P&L |
 | `fct_purchase_cost` | ngày × NCC × SP | 12+ | Procurement |
 | `dim_customer_credit` | 1 khách hàng | 10+ | AR / Công nợ |
-| `fct_stock_snapshot` | lot × kho × SP | 10+ | Inventory |
-| `fct_inbound_outbound` | ngày × kho × SP | 10+ | Kho nhập/xuất |
+| `fct_stock_snapshot` | lot × kho × (SP\|NPL) | 25+ | Inventory snapshot, định giá tồn |
+| `fct_inbound_outbound` | ngày × kho × (SP\|NPL) | 25+ | Kho nhập/xuất, trending |
+| `dim_material_mart` | 1 NPL | 10+ | Lookup NPL, filter npl_type |
 | `fct_order_npl_cost` | 1 đơn hàng | 12+ | NPL profitability |
 | `fct_production_npl_cost` | 1 BOM dòng | 15+ | BOM deep dive |
 | `fct_production_efficiency` | lệnh SX × ngày | 12+ | Production KPI |
@@ -452,6 +566,90 @@ Fulfilment Rate = DIVIDE(
 
 -- Average Order Value
 AOV = DIVIDE([Total Revenue], DISTINCTCOUNT(fct_revenue[order_id]))
+
+-- Tổng tồn kho số lượng (hiện tại)
+Total Stock Qty = SUM(fct_stock_snapshot[quantity_left])
+
+-- ── Giá trị tồn kho ────────────────────────────────────────────────────────
+
+-- Giá trị tồn kho HIỆN TẠI (snapshot — không dùng để trend theo tháng)
+-- Nguồn: fct_stock_snapshot. Ưu tiên: lot_price -> PO fallback.
+-- NVL: 98%+ có giá. Sản phẩm: gần như không có giá trong ERP (ERP không ghi
+-- giá lô cho thành phẩm sản xuất nội bộ — cost tracking ở BOM/NPL level).
+Stock Value (Current) = CALCULATE(
+    SUM(fct_stock_snapshot[stock_value]),
+    fct_stock_snapshot[is_valued] = TRUE()
+)
+
+-- Giá trị tồn kho NPL theo tháng (historical trend)
+-- Nguồn: fct_stock_monthly_snapshot. Dùng cho line chart trend 39 tháng.
+-- QUAN TRỌNG: chỉ NVL có giá (is_valued=TRUE ~64-83% rows).
+--             Sản phẩm trả về NULL — ERP không ghi giá lô cho thành phẩm SX.
+Stock Value NVL Monthly = CALCULATE(
+    SUM(fct_stock_monthly_snapshot[est_value_end_month]),
+    fct_stock_monthly_snapshot[is_valued] = TRUE(),
+    fct_stock_monthly_snapshot[item_type] = "nvl"
+)
+
+-- Tồn kho NPL theo tháng (số lượng, không cần is_valued)
+NVL Stock Qty Monthly = CALCULATE(
+    SUM(fct_stock_monthly_snapshot[est_qty_end_month]),
+    fct_stock_monthly_snapshot[item_type] = "nvl"
+)
+
+-- Tồn kho sản phẩm theo tháng (số lượng)
+Product Stock Qty Monthly = CALCULATE(
+    SUM(fct_stock_monthly_snapshot[est_qty_end_month]),
+    fct_stock_monthly_snapshot[item_type] = "product"
+)
+
+-- Tỉ lệ lot được định giá (hiện tại)
+Valued Lot Pct =
+    DIVIDE(
+        COUNTROWS(FILTER(fct_stock_snapshot, fct_stock_snapshot[is_valued])),
+        COUNTROWS(fct_stock_snapshot)
+    )
+
+-- Inbound tháng hiện tại
+Inbound MTD = CALCULATE(
+    SUM(fct_inbound_outbound[quantity_in]),
+    fct_inbound_outbound[movement_type] = "INBOUND",
+    DATESMTD(fct_inbound_outbound[movement_date])
+)
+
+-- Outbound tháng hiện tại
+Outbound MTD = CALCULATE(
+    SUM(fct_inbound_outbound[quantity_out]),
+    fct_inbound_outbound[movement_type] = "OUTBOUND",
+    DATESMTD(fct_inbound_outbound[movement_date])
+)
+
+-- ── Phân tích hiệu quả tồn kho (Advanced) ──────────────────────────
+
+-- Tồn kho bình quân (Average Inventory Qty - Monthly)
+Avg Inventory Qty = 
+AVERAGEX(
+    VALUES('fct_stock_monthly_snapshot'[month_end]),
+    CALCULATE(SUM('fct_stock_monthly_snapshot'[est_qty_end_month]))
+)
+
+-- Vòng quay tồn kho (Inventory Turnover - Unit Based)
+Inventory Turnover = 
+DIVIDE(
+    SUM('fct_inbound_outbound'[quantity_out]),
+    [Avg Inventory Qty],
+    0
+)
+
+-- Số ngày tồn kho (Days On Hand - DOH)
+Days On Hand (DOH) = 
+VAR DaysInPeriod = COUNTROWS('dim_date') 
+RETURN
+DIVIDE(
+    [Avg Inventory Qty] * DaysInPeriod,
+    SUM('fct_inbound_outbound'[quantity_out]),
+    0
+)
 ```
 
 ---

@@ -241,7 +241,6 @@ enriched as (
         on2.revenue_vnd,
         on2.total_quantity,
         on2.status,
-        on2.status_payment,
         on2.is_end,
         on2.linked_plan_count,
         on2.total_bom_items,

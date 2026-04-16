@@ -27,6 +27,10 @@ renamed as (
         id_branch,
         supplier_id,
 
+        -- virtual flag: TRUE = planning/staging warehouse (HDSX, TCXL)
+        -- exclude from physical stock totals in BI reports
+        is_virtual,
+
         -- metadata
         etl_loaded_at
 

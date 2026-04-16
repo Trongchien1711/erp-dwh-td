@@ -77,6 +77,14 @@ sources:
           - name: price_group_key
             tests: [not_null, unique]
 
+      - name: dim_material
+        description: NPL (nguyen phu lieu) raw material master. One row per NPL item.
+        columns:
+          - name: material_key
+            tests: [not_null, unique]
+          - name: material_id
+            tests: [not_null]
+
       # ── Facts ─────────────────────────────────────────────────
       - name: fact_orders
         description: Sales order headers (1 row = 1 order)

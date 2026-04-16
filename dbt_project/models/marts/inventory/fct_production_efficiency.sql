@@ -14,6 +14,13 @@
 --   total_workers     — headcount assigned to this order-date
 --   total_hours       — total worker-hours logged
 --   output_per_hour   — qty_produced / total_hours
+--
+-- ⚠ WARNING — do NOT SUM(qty_planned) across rows without filtering.
+--   Because grain includes stage_date, each production order × product
+--   appears once per distinct stage date. qty_planned repeats for every
+--   stage date of the same order → SUM over-counts planned quantities.
+--   Use MAX(qty_planned) or filter to a single stage_date when
+--   aggregating planned totals.
 -- ============================================================
 
 with prod_items as (

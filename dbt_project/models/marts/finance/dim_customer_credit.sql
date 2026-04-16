@@ -10,10 +10,10 @@
 -- Key metrics:
 --   debt_limit          — maximum credit extended (from CRM)
 --   debt_limit_day      — payment terms in days
---   outstanding_ar      — total unpaid invoices (revenue − collected)
---   credit_utilisation  — outstanding_ar / debt_limit × 100
+--   outstanding_ar      — total unpaid invoices (= lifetime_revenue; payment module not active)
+--   credit_utilisation  — lifetime_revenue / debt_limit × 100
 --   is_over_limit       — 1 when AR > debt_limit
---   credit_headroom     — debt_limit − outstanding_ar
+--   credit_headroom     — debt_limit − lifetime_revenue
 -- ============================================================
 
 with customers as (
@@ -47,8 +47,6 @@ ar_summary as (
     select
         customer_key,
         sum(revenue)                    as lifetime_revenue,
-        sum(collected)                  as lifetime_collected,
-        sum(outstanding_ar)             as outstanding_ar,
         count(distinct order_date_key)  as active_days,
         max(order_date)                 as last_order_date
 
@@ -80,27 +78,27 @@ final as (
         c.time_payment,
         c.discount,
 
-        -- ── AR position ────────────────────────────────────────
+        -- ── AR position ────────────────────────────────────────────────
+        -- lifetime_revenue is used as proxy for outstanding AR
+        -- (payment module not configured in ERP; collected = 0 always)
         coalesce(ar.lifetime_revenue, 0)     as lifetime_revenue,
-        coalesce(ar.lifetime_collected, 0)   as lifetime_collected,
-        coalesce(ar.outstanding_ar, 0)       as outstanding_ar,
         ar.last_order_date,
         coalesce(ar.active_days, 0)          as active_days,
 
         -- ── credit utilisation ─────────────────────────────────
         round(
-            coalesce(ar.outstanding_ar, 0)
+            coalesce(ar.lifetime_revenue, 0)
             / nullif(c.debt_limit, 0) * 100,
             2
         )                                    as credit_utilisation_pct,
 
         coalesce(c.debt_limit, 0)
-            - coalesce(ar.outstanding_ar, 0) as credit_headroom,
+            - coalesce(ar.lifetime_revenue, 0) as credit_headroom,
 
         -- ── risk flags ─────────────────────────────────────────
         case
             when coalesce(c.debt_limit, 0) = 0            then null   -- no limit set
-            when coalesce(ar.outstanding_ar, 0)
+            when coalesce(ar.lifetime_revenue, 0)
                  > coalesce(c.debt_limit, 0)               then 1
             else 0
         end                                  as is_over_limit,
@@ -108,13 +106,13 @@ final as (
         case
             when coalesce(c.debt_limit, 0) = 0
                 then 'No Limit Set'
-            when coalesce(ar.outstanding_ar, 0)
+            when coalesce(ar.lifetime_revenue, 0)
                  >= coalesce(c.debt_limit, 0)
                 then 'Over Limit'
-            when coalesce(ar.outstanding_ar, 0)
+            when coalesce(ar.lifetime_revenue, 0)
                  >= coalesce(c.debt_limit, 0) * 0.8
                 then 'Near Limit'
-            when coalesce(ar.outstanding_ar, 0) > 0
+            when coalesce(ar.lifetime_revenue, 0) > 0
                 then 'Within Limit'
             else 'Clear'
         end                                  as credit_status

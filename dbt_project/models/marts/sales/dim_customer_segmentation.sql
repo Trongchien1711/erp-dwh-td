@@ -152,7 +152,9 @@ final as (
         coalesce(r.frequency_score, 1)    as frequency_score,
         coalesce(r.monetary_score, 1)     as monetary_score,
         coalesce(r.rfm_total_score, 3)    as rfm_total_score,
-        coalesce(r.rfm_segment, 'New')    as rfm_segment
+        -- Customers with no orders are 'Inactive', not 'New'.
+        -- 'New' is reserved for customers with 1–few purchases (frequency_score=1).
+        coalesce(r.rfm_segment, 'Inactive') as rfm_segment
 
     from customers c
     left join rfm_segmented r using (customer_key)

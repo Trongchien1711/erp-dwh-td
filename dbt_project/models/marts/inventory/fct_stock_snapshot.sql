@@ -45,19 +45,18 @@ warehouses as (
         warehouse_key,
         warehouse_code,
         warehouse_name,
-        id_branch
+        id_branch,
+        is_virtual
 
     from {{ ref('stg_warehouses') }}
 
 ),
 
 -- Latest purchase order price per product (fallback when lot price missing)
--- NOTE: fact_purchase_order_items contains ONLY outsourced finished goods
--- (products / semi_products purchased from external suppliers).
--- Raw materials (NPL) are NOT in this table — their receipt prices are
--- not recorded in the ERP source (tbl_purchase_products.price = 0).
--- po_fallback is therefore only valid for products/semi_products that were
--- legitimately purchased externally AND lack a lot-level price.
+-- NOTE: fact_purchase_order_items contains BOTH:
+--   type != 'nvl': outsourced finished goods (product_key set)
+--   type =  'nvl': raw materials purchased (material_key set, price_suppliers populated)
+-- Two separate CTEs to avoid cross-joining the two key spaces.
 latest_po_price as (
 
     select distinct on (product_key)
@@ -65,7 +64,32 @@ latest_po_price as (
         price_suppliers as po_unit_price
     from {{ source('core', 'fact_purchase_order_items') }}
     where price_suppliers > 0
+      and product_key is not null
     order by product_key, po_date_key desc
+
+),
+
+latest_npl_po_price as (
+
+    select distinct on (material_key)
+        material_key,
+        price_suppliers as po_unit_price
+    from {{ source('core', 'fact_purchase_order_items') }}
+    where price_suppliers > 0
+      and material_key is not null
+    order by material_key, po_date_key desc
+
+),
+
+materials as (
+
+    select
+        material_key,
+        material_code,
+        material_name,
+        unit_id      as material_unit_id
+
+    from {{ ref('stg_materials') }}
 
 ),
 
@@ -76,19 +100,33 @@ final as (
         s.stock_key,
         s.stock_id,
 
-        -- ── product ────────────────────────────────────────────
+        -- ── item (product OR nvl material) ─────────────────────
         s.product_key,
+        s.material_key,
+        -- unified display columns
+        coalesce(p.product_code, m.material_code) as item_code,
+        coalesce(p.product_name, m.material_name) as item_name,
+        case
+            when s.product_key  is not null then 'product'
+            when s.material_key is not null then 'nvl'
+            else 'UNKNOWN'
+        end                                        as item_type,
+        -- product-specific columns (NULL for NVL rows)
         p.product_code,
         p.product_name,
         p.type_products,
         p.brand,
-        p.unit_id,
+        coalesce(p.unit_id, m.material_unit_id)   as unit_id,
+        -- material-specific columns (NULL for product rows)
+        m.material_code,
+        m.material_name,
 
         -- ── warehouse ──────────────────────────────────────────
         s.warehouse_key,
         w.warehouse_code,
         w.warehouse_name,
         w.id_branch,
+        w.is_virtual,
         s.location_key,
 
         -- ── lot traceability ───────────────────────────────────
@@ -107,42 +145,52 @@ final as (
         s.product_quantity_unit_export,
 
         -- ── value ──────────────────────────────────────────────
-        -- lot_price: total lot import price from warehouse stock (tong tien lo nhap)
-        -- unit_price: lot_price / quantity; fallback to latest PO price if missing
-        -- unit_price_capped: non-3D products capped at 50,000 VND/unit
         s.price                                            as lot_price,
 
-        -- price source flag for transparency
+        -- effective_po: product rows → latest_po_price; nvl rows → latest_npl_po_price
+        coalesce(po.po_unit_price, npl_po.po_unit_price)   as po_fallback_price,
+
         case
             when s.price > 0 then 'lot_price'
-            when po.po_unit_price is not null then 'po_fallback'
+            when po.po_unit_price     is not null then 'po_fallback'
+            when npl_po.po_unit_price is not null then 'npl_po_fallback'
             else 'no_price'
         end                                                as price_source,
 
         round(
             coalesce(
                 nullif(s.price / nullif(s.quantity, 0), 0),
-                po.po_unit_price
+                po.po_unit_price,
+                npl_po.po_unit_price,
+                p.price_import
             ), 2
         )                                                  as unit_price,
 
-        -- unit_price_capped: cap non-3D at 50,000 VND; NULL stays NULL (not capped)
-        -- NOTE: PostgreSQL LEAST(NULL, n) = n, so must guard with CASE
+        -- unit_price_capped: NVL items not capped; non-3D products capped at 50,000
         round(
             case
                 when coalesce(
                         nullif(s.price / nullif(s.quantity, 0), 0),
-                        po.po_unit_price
+                        po.po_unit_price,
+                        npl_po.po_unit_price,
+                        p.price_import
                      ) is null then null
+                when s.type_items = 'nvl'
+                    then coalesce(
+                            nullif(s.price / nullif(s.quantity, 0), 0),
+                            npl_po.po_unit_price
+                         )
                 when p.product_code like '3D%'
                     then coalesce(
                             nullif(s.price / nullif(s.quantity, 0), 0),
-                            po.po_unit_price
+                            po.po_unit_price,
+                            p.price_import
                          )
                 else least(
                         coalesce(
                             nullif(s.price / nullif(s.quantity, 0), 0),
-                            po.po_unit_price
+                            po.po_unit_price,
+                            p.price_import
                         ), 50000
                      )
             end, 2
@@ -152,25 +200,31 @@ final as (
             s.quantity_left * case
                 when coalesce(
                         nullif(s.price / nullif(s.quantity, 0), 0),
-                        po.po_unit_price
+                        po.po_unit_price,
+                        npl_po.po_unit_price,
+                        p.price_import
                      ) is null then null
+                when s.type_items = 'nvl'
+                    then coalesce(
+                            nullif(s.price / nullif(s.quantity, 0), 0),
+                            npl_po.po_unit_price
+                         )
                 when p.product_code like '3D%'
                     then coalesce(
                             nullif(s.price / nullif(s.quantity, 0), 0),
-                            po.po_unit_price
+                            po.po_unit_price,
+                            p.price_import
                          )
                 else least(
                         coalesce(
                             nullif(s.price / nullif(s.quantity, 0), 0),
-                            po.po_unit_price
+                            po.po_unit_price,
+                            p.price_import
                         ), 50000
                      )
             end, 2
         )                                                  as stock_value,
 
-        -- ── valuation quality flags for PBI filtering ─────────
-        -- is_valued: TRUE only when price comes from actual lot receipt
-        -- value_note: explains why stock_value may be NULL or estimated
         case
             when s.price > 0 then true
             else false
@@ -179,10 +233,14 @@ final as (
         case
             when s.price > 0
                 then 'lot_price'
+            when npl_po.po_unit_price is not null and s.type_items = 'nvl'
+                then 'npl_po_fallback'
             when po.po_unit_price is not null and p.type_products in ('products', 'semi_products')
                 then 'po_fallback_outsourced'
             when po.po_unit_price is not null
                 then 'po_fallback_material'
+            when p.price_import > 0
+                then 'product_master_fallback'
             else 'unpriced_no_eln_receipt'
         end                                                as value_note,
 
@@ -193,15 +251,14 @@ final as (
         s.type_items,
         s.type_export,
         s.type_transfer,
-        s.series,
-
-        -- ── metadata ───────────────────────────────────────────
-        s.etl_loaded_at
+        s.series
 
     from stock s
-    left join products      p   using (product_key)
-    left join warehouses    w   using (warehouse_key)
-    left join latest_po_price po using (product_key)
+    left join products            p      using (product_key)
+    left join warehouses          w      using (warehouse_key)
+    left join latest_po_price     po     using (product_key)
+    left join latest_npl_po_price npl_po using (material_key)
+    left join materials           m      using (material_key)
 
 )
 

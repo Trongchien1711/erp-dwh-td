@@ -332,6 +332,51 @@ FROM staging.tbl_manufactures src
 WHERE NOT EXISTS (SELECT 1 FROM updated u WHERE u.manufacture_id = src.id);
 """
 
+SQL_DIM_MATERIAL = """
+WITH updated AS (
+    UPDATE core.dim_material d
+    SET
+        material_code      = src.code,
+        material_name      = src.name,
+        material_name_supplier = src.name_supplier,
+        category_id        = src.category_id,
+        unit_id            = src.unit_id,
+        price_import       = src.price_import,
+        species            = src.species,
+        is_zinc            = (src.is_zinc = 1),
+        mode_id            = src.mode_id,
+        longs              = src.longs,
+        wide               = src.wide,
+        height             = src.height,
+        is_single_use      = (src.is_single_use = 1),
+        is_active          = (src.status = 1),
+        id_branch          = src.id_branch,
+        date_created       = src.date_created,
+        date_updated       = src.date_updated,
+        etl_loaded_at      = NOW()
+    FROM staging.tbl_materials src
+    WHERE d.material_id = src.id
+    RETURNING d.material_id
+)
+INSERT INTO core.dim_material (
+    material_id, material_code, material_name, material_name_supplier,
+    category_id, unit_id, price_import, species,
+    is_zinc, mode_id, longs, wide, height,
+    is_single_use, is_active, id_branch,
+    date_created, date_updated,
+    etl_loaded_at, etl_source
+)
+SELECT
+    src.id, src.code, src.name, src.name_supplier,
+    src.category_id, src.unit_id, src.price_import, src.species,
+    (src.is_zinc = 1), src.mode_id, src.longs, src.wide, src.height,
+    (src.is_single_use = 1), (src.status = 1), src.id_branch,
+    src.date_created, src.date_updated,
+    NOW(), 'tbl_materials'
+FROM staging.tbl_materials src
+WHERE NOT EXISTS (SELECT 1 FROM updated u WHERE u.material_id = src.id);
+"""
+
 # ============================================
 # FACT TABLES
 # ============================================
@@ -467,21 +512,36 @@ WHERE NOT EXISTS (
 
 SQL_FACT_WH_STOCK = """
 WITH fix_keys AS (
-    -- Fix NULL product_key + backfill NULL location_key for existing rows
+    -- Fix missing keys for existing rows.
+    -- product rows: fix product_key if NULL
+    -- nvl rows:     fix material_key if NULL; ensure product_key cleared
+    -- both:         backfill location_key
     UPDATE core.fact_warehouse_stock f
     SET
-        product_key  = COALESCE(dp.product_key,  f.product_key),
+        product_key  = CASE
+                          WHEN wp.type_items = 'product' THEN COALESCE(dp.product_key, f.product_key)
+                          ELSE NULL
+                       END,
+        material_key = CASE
+                          WHEN wp.type_items = 'nvl' THEN COALESCE(dm.material_key, f.material_key)
+                          ELSE NULL
+                       END,
         location_key = COALESCE(dl.location_key, f.location_key)
     FROM staging.tblwarehouse_product wp
-    LEFT JOIN core.dim_product            dp ON dp.product_id   = wp.product_id
+    LEFT JOIN core.dim_product            dp ON dp.product_id   = wp.product_id AND wp.type_items = 'product'
+    LEFT JOIN core.dim_material           dm ON dm.material_id  = wp.product_id AND wp.type_items = 'nvl'
     LEFT JOIN core.dim_warehouse_location dl ON dl.location_id  = wp.localtion
     WHERE f.stock_id = wp.id
-      AND (f.product_key IS NULL OR f.location_key IS NULL)
+      AND (
+            (wp.type_items = 'product' AND f.product_key  IS NULL)
+         OR (wp.type_items = 'nvl'     AND f.material_key IS NULL)
+         OR f.location_key IS NULL
+      )
     RETURNING 1
 ),
 new_rows AS (
     INSERT INTO core.fact_warehouse_stock (
-        stock_id, product_key, warehouse_key, location_key, import_date_key,
+        stock_id, product_key, material_key, warehouse_key, location_key, import_date_key,
         quantity, quantity_left, quantity_export,
         quantity_exchange, quantity_exchange_left, quantity_exchange_export,
         product_quantity_unit, product_quantity_unit_export, product_quantity_unit_left,
@@ -490,7 +550,10 @@ new_rows AS (
         etl_loaded_at, etl_source
     )
     SELECT
-        wp.id, dp.product_key, dw.warehouse_key, dl.location_key,
+        wp.id,
+        CASE WHEN wp.type_items = 'product' THEN dp.product_key  ELSE NULL END,
+        CASE WHEN wp.type_items = 'nvl'     THEN dm.material_key ELSE NULL END,
+        dw.warehouse_key, dl.location_key,
         TO_CHAR(wp.date_import::DATE, 'YYYYMMDD')::INT,
         wp.quantity, wp.quantity_left, wp.quantity_export,
         wp.quantity_exchange, wp.quantity_exchange_left, wp.quantity_exchange_export,
@@ -500,7 +563,8 @@ new_rows AS (
         wp.lot_code, wp.date_sx, wp.date_sd, wp.series,
         NOW(), 'tblwarehouse_product'
     FROM staging.tblwarehouse_product wp
-    LEFT JOIN core.dim_product            dp ON dp.product_id   = wp.product_id
+    LEFT JOIN core.dim_product            dp ON dp.product_id   = wp.product_id AND wp.type_items = 'product'
+    LEFT JOIN core.dim_material           dm ON dm.material_id  = wp.product_id AND wp.type_items = 'nvl'
     LEFT JOIN core.dim_warehouse          dw ON dw.warehouse_id = wp.warehouse_id
     LEFT JOIN core.dim_warehouse_location dl ON dl.location_id  = wp.localtion
     WHERE NOT EXISTS (
@@ -515,7 +579,7 @@ SELECT
 
 SQL_FACT_PO_ITEMS = """
 INSERT INTO core.fact_purchase_order_items (
-    po_item_id, po_id, product_key, supplier_key, po_date_key,
+    po_item_id, po_id, product_key, material_key, supplier_key, po_date_key,
     quantity, quantity_suppliers, unit_cost, price_expected, price_suppliers,
     promotion_expected, total_expected, total_suppliers, subtotal, tax_rate,
     quantity_unit, quantity_stock, quantity_payment, type,
@@ -523,7 +587,9 @@ INSERT INTO core.fact_purchase_order_items (
 )
 SELECT
     poi.id, poi.id_purchase_order,
-    dp.product_key, ds.supplier_key,
+    CASE WHEN poi.type = 'nvl' THEN NULL ELSE dp.product_key END,
+    CASE WHEN poi.type = 'nvl' THEN dm.material_key ELSE NULL END,
+    ds.supplier_key,
     TO_CHAR(po.date::DATE, 'YYYYMMDD')::INT,
     poi.quantity, poi.quantity_suppliers, poi.unit_cost,
     poi.price_expected, poi.price_suppliers,
@@ -533,7 +599,8 @@ SELECT
     NOW(), 'tblpurchase_order_items'
 FROM staging.tblpurchase_order_items poi
 JOIN  staging.tblpurchase_order  po ON po.id = poi.id_purchase_order
-LEFT JOIN core.dim_product  dp ON dp.product_id  = poi.product_id
+LEFT JOIN core.dim_product  dp ON dp.product_id  = poi.product_id AND poi.type != 'nvl'
+LEFT JOIN core.dim_material dm ON dm.material_id = poi.product_id AND poi.type = 'nvl'
 LEFT JOIN core.dim_supplier ds ON ds.supplier_id = po.suppliers_id
 WHERE NOT EXISTS (
     SELECT 1 FROM core.fact_purchase_order_items f WHERE f.po_item_id = poi.id
@@ -624,7 +691,7 @@ WITH deleted AS (
     WHERE export_id IN (SELECT id FROM staging.tblwarehouse_export)
 )
 INSERT INTO core.fact_warehouse_export (
-    export_id, product_key, warehouse_key, location_key,
+    export_id, product_key, material_key, warehouse_key, location_key,
     export_date_key,
     quantity, product_quantity_unit, product_quantity_payment,
     type_items, type_export, lot_code, date_sx, date_sd,
@@ -632,7 +699,10 @@ INSERT INTO core.fact_warehouse_export (
 )
 SELECT
     we.id,
-    dp.product_key,
+    -- product_key: only for product rows; NULL for nvl (product_id = material_id)
+    CASE WHEN we.type_items = 'nvl' THEN NULL ELSE dp.product_key END,
+    -- material_key: only for nvl rows
+    CASE WHEN we.type_items = 'nvl' THEN dm.material_key ELSE NULL END,
     dw.warehouse_key,
     dwl.location_key,
     COALESCE(TO_CHAR(we.date_export::DATE, 'YYYYMMDD')::INT, 19000101),
@@ -646,7 +716,8 @@ SELECT
     we.date_sd,
     NOW(), 'tblwarehouse_export'
 FROM staging.tblwarehouse_export        we
-LEFT JOIN core.dim_product            dp  ON dp.product_id   = we.product_id
+LEFT JOIN core.dim_product            dp  ON dp.product_id   = we.product_id  AND we.type_items != 'nvl'
+LEFT JOIN core.dim_material           dm  ON dm.material_id  = we.product_id  AND we.type_items  = 'nvl'
 LEFT JOIN core.dim_warehouse          dw  ON dw.warehouse_id = we.warehouse_id
 LEFT JOIN core.dim_warehouse_location dwl ON dwl.location_id = we.localtion;
 """
@@ -697,6 +768,7 @@ TRANSFORM_STEPS = [
     ("dim_supplier",              SQL_DIM_SUPPLIER),
     ("dim_warehouse_location",    SQL_DIM_WAREHOUSE_LOCATION),
     ("dim_manufacture",           SQL_DIM_MANUFACTURE),
+    ("dim_material",              SQL_DIM_MATERIAL),
     ("dim_price_group",           SQL_DIM_PRICE_GROUP),
     # Update dim_customer voi price_group_key (can ALTER truoc bang init_schema.py)
     ("dim_customer [UPDATE price_group_key]", SQL_UPDATE_DIM_CUSTOMER_PRICE_GROUP),

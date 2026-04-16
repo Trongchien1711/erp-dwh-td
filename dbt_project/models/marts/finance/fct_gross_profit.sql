@@ -58,8 +58,11 @@ final as (
         sum(total_tax)                                  as total_vat,
 
         -- ── costs ──────────────────────────────────────────────
-        -- cogs: ERP-recorded (only ~244 orders have cost > 0 — see YML for ERP gap note)
+        -- cogs: ERP-recorded (only ~244 orders have cost > 0 — see header note)
         sum(total_cost)                                 as cogs,
+        -- is_cogs_available: TRUE when at least one order in this group has cost recorded.
+        -- Use to filter out rows where cogs / gp_margin_pct are near-zero due to missing data.
+        bool_or(total_cost > 0)                         as is_cogs_available,
 
         -- ── profit ─────────────────────────────────────────────
         sum(total_profit)                               as gross_profit,
@@ -70,11 +73,7 @@ final as (
 
         -- ── discounts ──────────────────────────────────────────
         sum(total_discount_percent + total_discount_direct)
-                                                        as total_discount,
-
-        -- ── cash flow ──────────────────────────────────────────
-        sum(total_payment)                              as collected,
-        sum(grand_total) - sum(total_payment)           as outstanding_ar
+                                                        as total_discount
 
     from orders
     group by 1, 2, 3, 4, 5, 6,

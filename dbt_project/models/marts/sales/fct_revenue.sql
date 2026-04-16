@@ -10,8 +10,6 @@
 --   revenue         — grand_total (incl. tax + delivery)
 --   cogs            — cost of goods sold (total_cost)
 --   gross_profit    — revenue – cogs
---   collected       — cash actually received (total_payment)
---   outstanding_ar  — revenue – collected  (trade receivable)
 -- ============================================================
 
 with orders as (
@@ -90,8 +88,6 @@ final as (
             / nullif(sum(grand_total_adjusted), 0) * 100,
             2
         )                                               as gross_margin_pct,
-        sum(total_payment)                              as collected,
-        sum(grand_total_adjusted) - sum(total_payment)  as outstanding_ar,
         avg(grand_total_adjusted)                       as avg_order_value,
         sum(total_tax)                                  as total_tax,
         sum(total_discount_percent + total_discount_direct)

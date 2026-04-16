@@ -19,7 +19,7 @@ clean-targets:
 # ============================================================
 models:
   erp_dwh:
-    # staging/ — views, chỉ select từ core.* không transform nhiều
+    # staging/ — views, chi select tu core.* khong transform nhieu
     staging:
       +materialized: view
       +schema: staging_dbt   # tạo trong schema staging_dbt, tránh đè staging ELT

@@ -56,7 +56,22 @@ models:
       - name: supplier_id
         description: Natural key — tblsuppliers.id from ERP
         tests: [not_null]
-
+  - name: stg_materials
+    description: >
+      Staging wrapper over core.dim_material.
+      One row per NPL (nguyen phu lieu) raw material item.
+      Source: tbl_materials (MySQL ERP).
+    columns:
+      - name: material_key
+        description: Surrogate primary key
+        tests: [not_null, unique]
+      - name: material_id
+        description: Natural key from tbl_materials.id
+        tests: [not_null]
+      - name: material_code
+        description: NPL code displayed in ERP (e.g. VTDG-CAR3L1X-1)
+      - name: is_zinc
+        description: True = Kem in (zinc offset plate used in offset printing)
   - name: stg_warehouses
     description: >
       Staging wrapper over core.dim_warehouse.

@@ -213,6 +213,11 @@ enriched as (
         dp.product_name                                 as product_master_name,
         dp.product_code                                 as product_master_code,
 
+        -- dim_material match (dedicated NPL master)
+        dm.material_key,
+        coalesce(dm.material_name, b.npl_name)          as npl_name_resolved,
+        coalesce(dm.material_code, b.npl_code)          as npl_code_resolved,
+
         -- Latest purchase price
         lp.unit_price_vnd,
         lp.last_po_date,
@@ -259,6 +264,8 @@ enriched as (
     from bom_all b
     left join {{ source('core', 'dim_product') }} dp
         on dp.product_id = b.npl_product_id
+    left join {{ ref('stg_materials') }} dm
+        on dm.material_id = b.npl_product_id
     left join latest_price lp
         on lp.product_id = b.npl_product_id
 
@@ -281,7 +288,10 @@ select
     e.npl_product_id,
     e.npl_code,
     e.npl_name,
+    e.npl_code_resolved,
+    e.npl_name_resolved,
     e.unit_id,
+    e.material_key,
     e.material_matched,
     e.product_master_name,
     e.product_master_code,

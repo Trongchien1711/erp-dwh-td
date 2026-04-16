@@ -23,6 +23,12 @@
 --   delivery = 6.1% of total outbound only. The remaining 93.9% is
 --   production consumption, internal transfers, and losses.
 --
+-- Movement Categorization:
+--   - 'Sales'             (SubType 1)  : Actual deliveries to customers.
+--   - 'Internal Transfer' (SubType 17) : Logical/physical movement between warehouses.
+--   - 'Loss/Return'       (SubType 2,4): Shrinkage or returns to suppliers.
+--   - 'Consumption'       (Other)      : Raw materials issued to production or stages.
+--
 -- Key metrics:
 --   quantity_in       — units received into warehouse (all inbound types)
 --   quantity_out      — units exported from warehouse (all types, exact export date)
@@ -115,10 +121,26 @@ with_dims as (
         w.warehouse_code,
         w.warehouse_name,
         w.id_branch,
+        w.is_virtual,
 
         -- ── movement ───────────────────────────────────────────
         c.movement_type,
         c.movement_subtype,
+        case
+            when c.movement_type = 'OUTBOUND' then
+                case
+                    when c.movement_subtype = '1'  then 'Sales'
+                    when c.movement_subtype = '17' then 'Internal Transfer'
+                    when c.movement_subtype in ('2', '4') then 'Loss/Return'
+                    else 'Production Consumption/Other'
+                end
+            when c.movement_type = 'INBOUND' then
+                case
+                    when c.product_key is not null and c.movement_subtype not in ('purchase', 'buy') then 'Production Output'
+                    else 'Purchase/Other Inbound'
+                end
+            else 'Other'
+        end                                        as movement_purpose,
         c.quantity_in,
         c.quantity_out,
         c.value_in,
@@ -150,8 +172,10 @@ final as (
         warehouse_code,
         warehouse_name,
         id_branch,
+        is_virtual,
         movement_type,
         movement_subtype,
+        movement_purpose,
         quantity_in,
         quantity_out,
         quantity_in - quantity_out      as net_movement,

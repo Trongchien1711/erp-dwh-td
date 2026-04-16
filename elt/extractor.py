@@ -138,6 +138,10 @@ TABLE_CONFIG = [
         "source_table":  "tblcurrencies",
         "watermark_col": None,   # currency master with amount_to_vnd exchange rates
     },
+    {
+        "source_table":  "tbl_materials",
+        "watermark_col": None,   # NPL master — 5K rows, full load (no reliable timestamp)
+    },
 ]
 
 CHUNK_SIZE = 50000  # 50K rows/chunk -- giam 10x roundtrips so voi 5000

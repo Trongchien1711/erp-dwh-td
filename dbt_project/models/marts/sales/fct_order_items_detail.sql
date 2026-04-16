@@ -252,11 +252,7 @@ final as (
             else                                       'High'
         end                                                     as price_tier,
         pt.p33                                                  as price_tier_p33,
-        pt.p67                                                  as price_tier_p67,
-
-        -- ── metadata ───────────────────────────────────────────
-        oi.active,
-        oi.etl_loaded_at
+        pt.p67                                                  as price_tier_p67
 
     from order_items oi
     -- only include lines belonging to non-cancelled orders

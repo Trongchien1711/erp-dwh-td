@@ -17,6 +17,29 @@ models:
       - name: price_group_name
         description: Customer tier / price group
 
+  - name: dim_material_mart
+    description: >
+      Analysis-ready NPL (nguyen phu lieu) dimension shared across
+      Inventory and Production domains. Grain: one row per NPL item.
+      Adds npl_type slicer and is_giay / is_zinc flags.
+    columns:
+      - name: material_key
+        description: Surrogate PK (from core.dim_material)
+        tests: [not_null, unique]
+      - name: material_id
+        description: Natural key from tbl_materials.id
+        tests: [not_null]
+      - name: material_code
+        description: NPL code (e.g. VTDG-CAR3L1X-1)
+      - name: material_name
+        description: Full NPL name
+      - name: is_zinc
+        description: True = Kem in (zinc offset plate)
+      - name: is_giay
+        description: True = paper-family material (Giay cac loai)
+      - name: npl_type
+        description: BI slicer label (Kem in / Giay / Decal / Muc UV / Bao bi / Bang keo / Vat tu dong goi / Khac)
+
   - name: dim_product_mart
     description: >
       Analysis-ready product dimension shared across all domains.
